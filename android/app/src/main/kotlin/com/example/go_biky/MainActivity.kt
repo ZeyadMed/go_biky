@@ -1,4 +1,4 @@
-package com.example.go_biky
+package com.theonesystem.go_biky
 
 import io.flutter.embedding.android.FlutterActivity
 

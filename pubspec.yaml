@@ -55,16 +55,26 @@ flutter:
   uses-material-design: true
 
   fonts:
-    - family: Diodrum
-      fonts:
-        - asset: assets/fonts/DiodrumArabic-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/DiodrumArabic-Medium-1.ttf
-          weight: 500
-        - asset: assets/fonts/DiodrumArabic-Semibold-1.ttf
-          weight: 600
-        - asset: assets/fonts/DiodrumArabic-Bold-1.ttf
-          weight: 700
+  # الديزاين: Regular 400 نصوص، Medium 500 عناصر مهمة، SemiBold 600 عناوين، Bold 700 إبراز
+  - family: Cairo
+    fonts:
+      # ميتاداتا الملف usWeightClass 250، وفلاتر بيقبل مضاعفات 100 بس
+      - asset: assets/fonts/Cairo-ExtraLight.ttf
+        weight: 200
+      - asset: assets/fonts/Cairo-Light.ttf
+        weight: 300
+      - asset: assets/fonts/Cairo-Regular.ttf
+        weight: 400
+      - asset: assets/fonts/Cairo-Medium.ttf
+        weight: 500
+      - asset: assets/fonts/Cairo-SemiBold.ttf
+        weight: 600
+      - asset: assets/fonts/Cairo-Bold.ttf
+        weight: 700
+      - asset: assets/fonts/Cairo-ExtraBold.ttf
+        weight: 800
+      - asset: assets/fonts/Cairo-Black.ttf
+        weight: 900
 
   assets:
     - assets/svg/

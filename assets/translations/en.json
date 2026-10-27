@@ -1,4 +1,44 @@
 {
-    "welcome": "Welcome"
-
+    "welcome": "Welcome",
+    "common": {
+        "ok": "OK",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "save": "Save",
+        "retry": "Retry",
+        "loading": "Loading...",
+        "noInternet": "No internet connection",
+        "somethingWentWrong": "Something went wrong, please try again",
+        "tapAgainToExit": "Tap again to exit"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "arabic": "العربية",
+        "english": "English",
+        "theme": "Appearance",
+        "lightMode": "Light",
+        "darkMode": "Dark",
+        "systemMode": "System default"
+    },
+    "splash": {
+        "appName": "Go Biky",
+        "tagline": "Every road starts with care.",
+        "headline": "Your bike is ready. Are you?",
+        "subtitle": "Your bike care companion\nfrom the first kilometer to the end of the road"
+    },
+    "auth": {
+        "riderSpace": "Rider space",
+        "welcomeBack": "Welcome back 👋",
+        "subtitle": "Sign in and get ready for the road.",
+        "username": "Username",
+        "usernameHint": "Enter your username",
+        "usernameRequired": "Please enter your username",
+        "password": "Password",
+        "passwordHint": "Enter your password",
+        "passwordRequired": "Please enter your password",
+        "login": "Sign in",
+        "forgotPassword": "Forgot your password? Contact the company",
+        "accountInfo": "Your account is created by Go Biky.\nTo get your login details, contact your supervisor."
+    }
 }

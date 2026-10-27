@@ -1,3 +1,44 @@
 {
-    "welcome": "مرحبا"
+    "welcome": "مرحبا",
+    "common": {
+        "ok": "حسناً",
+        "cancel": "إلغاء",
+        "confirm": "تأكيد",
+        "save": "حفظ",
+        "retry": "إعادة المحاولة",
+        "loading": "جاري التحميل...",
+        "noInternet": "لا يوجد اتصال بالإنترنت",
+        "somethingWentWrong": "حدث خطأ ما، حاول مرة أخرى",
+        "tapAgainToExit": "اضغط مرة أخرى للخروج"
+    },
+    "settings": {
+        "title": "الإعدادات",
+        "language": "اللغة",
+        "arabic": "العربية",
+        "english": "English",
+        "theme": "المظهر",
+        "lightMode": "فاتح",
+        "darkMode": "داكن",
+        "systemMode": "حسب إعدادات الجهاز"
+    },
+    "splash": {
+        "appName": "جو بايكي",
+        "tagline": "كل طريق يبدأ بعناية.",
+        "headline": "دراجتك جاهزة. وأنت؟",
+        "subtitle": "رفيقك للعناية بالدراجة\nمن أول كيلومتر إلى آخر الطريق"
+    },
+    "auth": {
+        "riderSpace": "مساحة الراكب",
+        "welcomeBack": "أهلاً بعودتك 👋",
+        "subtitle": "سجّل دخولك، وخلك جاهز للطريق.",
+        "username": "اسم المستخدم",
+        "usernameHint": "أدخل اسم المستخدم",
+        "usernameRequired": "من فضلك أدخل اسم المستخدم",
+        "password": "كلمة المرور",
+        "passwordHint": "أدخل كلمة المرور",
+        "passwordRequired": "من فضلك أدخل كلمة المرور",
+        "login": "تسجيل الدخول",
+        "forgotPassword": "نسيت كلمة المرور؟ تواصل مع الشركة",
+        "accountInfo": "حسابك تنشئه شركة جو بايكي،\nللحصول على بيانات الدخول، تواصل مع المشرف."
+    }
 }
