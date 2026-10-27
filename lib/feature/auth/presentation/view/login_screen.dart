@@ -2,8 +2,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
+import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/style/assets.dart';
 import 'package:go_biky/core/widgets/widgets.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _submit() {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
-    // TODO: ربط الـ LoginCubit لما الـ API يجهز
+    context.push(AppRouter.initialRoute);
   }
 
   String? _required(String? value, String messageKey) =>

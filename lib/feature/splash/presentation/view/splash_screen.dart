@@ -66,8 +66,9 @@ class _SplashScreenState extends State<SplashScreen>
       create: (context) => SplashCubit()..startSplashScreen(),
       child: BlocListener<SplashCubit, String>(
         listener: (context, state) {
-          // TODO: الـ 'home' يروح على الهوم لما الشاشة تتعمل
-          if (state == 'home' || state == 'login') {
+          if (state == 'home') {
+            GoRouter.of(context).go(AppRouter.initialRoute);
+          } else if (state == 'login') {
             GoRouter.of(context).go(AppRouter.login);
           }
         },

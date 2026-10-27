@@ -41,6 +41,12 @@
         "forgotPassword": "Forgot your password? Contact the company",
         "accountInfo": "Your account is created by Go Biky.\nTo get your login details, contact your supervisor."
     },
+    "bottomNav": {
+        "home": "Home",
+        "spareParts": "Spare parts",
+        "orders": "My orders",
+        "profile": "Account"
+    },
     "errors": {
         "unauthorized": "You are not authorized",
         "sessionExpired": "Your session has expired, please sign in again",
