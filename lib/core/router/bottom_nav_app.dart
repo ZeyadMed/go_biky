@@ -3,17 +3,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
+import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_biky/feature/home/presentation/view/home_screen.dart';
 import 'package:go_biky/feature/orders/presentation/view/orders_screen.dart';
 import 'package:go_biky/feature/profile/presentation/view/profile_screen.dart';
 import 'package:go_biky/feature/spare_parts/presentation/view/spare_parts_screen.dart';
 
+/// التابات بنفس ترتيبها في البار
+enum BottomNavTab { home, spareParts, orders, profile }
+
 /// الشاشة اللي شايلة التابات الأساسية، والتنقل بينهم بيتم هنا.
 /// الصفحات جوه `IndexedStack` فكل تاب بيحتفظ بالـ state بتاعه
 /// لما تتنقل بين التابات
 class BottomNavApp extends StatefulWidget {
   const BottomNavApp({super.key});
+
+  /// بيرجع للتابات من أي شاشة فوقها ويفتح `tab`، زي "عرض تفاصيل الطلب"
+  /// اللي بيفتح طلباتي. بيرجع بـ pop مش go عشان التابات تحتفظ بالـ state
+  /// بتاعها
+  static void openTab(BuildContext context, BottomNavTab tab) {
+    _tabRequest.value = tab;
+    Navigator.of(
+      context,
+    ).popUntil((route) => route.settings.name == AppRouter.initialRoute);
+  }
+
+  /// طلب فتح تاب من بره، والـ state بتنفّذه وترجّعه null
+  static final _tabRequest = ValueNotifier<BottomNavTab?>(null);
 
   @override
   State<BottomNavApp> createState() => _BottomNavAppState();
@@ -24,6 +41,25 @@ class _BottomNavAppState extends State<BottomNavApp> {
 
   int _currentIndex = 0;
   DateTime? _lastBackPress;
+
+  @override
+  void initState() {
+    super.initState();
+    BottomNavApp._tabRequest.addListener(_onTabRequested);
+  }
+
+  @override
+  void dispose() {
+    BottomNavApp._tabRequest.removeListener(_onTabRequested);
+    super.dispose();
+  }
+
+  void _onTabRequested() {
+    final tab = BottomNavApp._tabRequest.value;
+    if (tab == null) return;
+    BottomNavApp._tabRequest.value = null;
+    _goToTab(tab.index);
+  }
 
   void _goToTab(int index) {
     if (index == _currentIndex) return;
@@ -92,7 +128,7 @@ class _NavItem {
   final Widget page;
 }
 
-/// ترتيبهم هنا هو ترتيب التابات في البار، وأول واحد هو اللي بيفتح الأول
+/// بنفس ترتيب `BottomNavTab`، وأول واحد هو اللي بيفتح الأول
 const _items = [
   _NavItem(Icons.home_outlined, 'bottomNav.home', HomeScreen()),
   _NavItem(

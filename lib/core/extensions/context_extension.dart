@@ -69,9 +69,26 @@ extension ContextExtensions on BuildContext {
               : NumberFormat('0', _formatLocale))
           .format(value);
 
+  /// الأرقام جوه نص مش رقم (رقم جوال، إصدار التطبيق) بتتكتب عربي لو
+  /// اللغة عربي: "055 123" ← "٠٥٥ ١٢٣"
+  String localizeDigits(String text) => isArabic
+      ? text.replaceAllMapped(
+          RegExp('[0-9]'),
+          (match) => '٠١٢٣٤٥٦٧٨٩'[int.parse(match[0]!)],
+        )
+      : text;
+
+  /// سعر بالريال بالشكل "٤٥ ر.س"
+  String formatPrice(num price) =>
+      'common.price'.tr(args: [formatNumber(price)]);
+
   /// تاريخ بالشكل "٢٥ أكتوبر ٢٠٢٦"
   String formatDate(DateTime date) =>
       DateFormat('d MMMM y', _formatLocale).format(date);
+
+  /// يوم وشهر بالشكل "٢٥ أكتوبر"
+  String formatDayMonth(DateTime date) =>
+      DateFormat('d MMMM', _formatLocale).format(date);
 
   /// شهر وسنة بالشكل "أكتوبر ٢٠٢٦"
   String formatMonthYear(DateTime date) =>

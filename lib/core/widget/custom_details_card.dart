@@ -6,9 +6,20 @@ import 'package:go_biky/core/widget/stateless/gaps.dart';
 /// كارت فيه صفوف عنوان وقيمة (تاريخ، قراءة عداد، حالة...): العنوان في
 /// البداية والقيمة في الآخر، وكلهم بيتبعتوا مترجمين
 class CustomDetailsCard extends StatelessWidget {
-  const CustomDetailsCard({super.key, required this.rows});
+  const CustomDetailsCard({
+    super.key,
+    required this.rows,
+    this.header,
+    this.footer,
+  });
 
   final List<({String label, String value})> rows;
+
+  /// بيظهر فوق الصفوف (زي رقم الطلب وحالته)
+  final Widget? header;
+
+  /// بيظهر تحت الصفوف بعد خط فاصل (زي الإجمالي)
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +37,23 @@ class CustomDetailsCard extends StatelessWidget {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (header case final header?) ...[header, Gaps.v(12.h)],
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0) Gaps.v(10.h),
             _DetailRow(label: rows[i].label, value: rows[i].value),
+          ],
+          if (footer case final footer?) ...[
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 14.h),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: context.appColors.border,
+              ),
+            ),
+            footer,
           ],
         ],
       ),

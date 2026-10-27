@@ -74,20 +74,22 @@
 
 | عايز | استخدم |
 |---|---|
-| زرار | `CustomButton` (`outlined: true` للثانوي، `isLoading` وقت الطلب، `onPressed: null` = متعطل) |
+| زرار | `CustomButton` (`outlined: true` للثانوي، `isLoading` وقت الطلب، `onPressed: null` = متعطل، `iconAtEnd` للأيقونة بعد النص) |
 | حقل نص / باسورد / تاريخ | `CustomTextField` (`labelText` فوقه، `obscureText` بيعمل زرار العين لوحده، `onDateSelected` بيفتح date picker) |
 | رقم موبايل | `CustomPhoneField` |
 | قايمة اختيار | `CustomDropDown<T>` (بيشتغل جوه `Form` بـ `validator`) |
 | حقل بيفتح ويقفل (كود خصم...) | `ExpandableTextField` |
 | حقل مخصوص مش موجود | `AppInputDecoration.of(context, ...)` للشكل + `LabeledField` للعنوان |
-| بحث | `CustomSearchWidget` |
+| بحث | `CustomSearchWidget` (`filled: true` لخانة بخلفية بدل الخط اللي تحت) |
+| عداد كمية (+ و −) | `CustomQuantityStepper` (`style`: `plain` زي تفاصيل القطعة، `boxed` زي سلة الطلب، `filled` شريط بعرض المكان زي كارت القطعة) |
 | راديو | `CustomRadioButton<T>` لمجموعة `value`/`groupValue`، و`DefaultRadioButton` / `BorderRadioButton` لصف اختيار بعنوان وأيقونة |
 | صف في قايمة (الحساب / الإعدادات) | `CustomListTile` (`trailing` مكان السهم، زي `Switch`) |
 | تغيير اللغة | `ChangeLanguageWidget` |
 | هيدر الشاشة (رجوع + عنوان) | `CustomBackHeader` (`subtitle` تحت العنوان، `trailing` في آخر الصف زي زرار فلتر) |
 | عنوان قسم + "عرض الكل" | `RowWidget` (`trailing` مكان "عرض الكل" زي عدد العناصر) |
+| chip اختيار (تصنيفات، فلتر الكل / النشطة...) | `CustomChoiceChip` (`padding` و`fontSize` للـ chip الأكبر) |
 | شارة حالة صغيرة (بانتظار الموافقة، تم الاعتماد...) | `CustomBadge` (من غير ألوان بتبقى `primary`/`primaryContainer`، ولحالة ابعت لونها والـ `...Container` بتاعه) |
-| كارت صفوف عنوان وقيمة (تفاصيل طلب...) | `CustomDetailsCard` (`rows: [(label: ..., value: ...)]`) |
+| كارت صفوف عنوان وقيمة (تفاصيل طلب...) | `CustomDetailsCard` (`rows: [(label: ..., value: ...)]`، و`header` فوق الصفوف زي رقم الطلب، و`footer` تحت خط فاصل زي الإجمالي) |
 | فاصل "أو" | `DividerWidget` |
 | تابات | `CustomTabBarView` |
 | سلايدر / بانرات | `CarouselSliderWidget`، والنقط لوحدها `CustomPageIndicator` |
@@ -100,6 +102,7 @@
 | المحتوى على التابلت | `ResponsiveCenter` / `ResponsiveLayout` |
 | رسالة خطأ / نجاح | `context.showErrorMessage` / `context.showSuccessMessage` |
 | loading dialog | `context.showLoadingDialog()` |
+| dialog تأكيد (خروج، حذف...) | `CustomConfirmDialog.show(...)` بترجع `true` لو أكّد (للإجراء الخطير ابعت ألوان `error`) |
 
 ## قواعد للتعامل معايا
 - قبل ما تضيف package جديدة، اسألني الأول

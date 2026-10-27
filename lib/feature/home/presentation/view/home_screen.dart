@@ -1,10 +1,15 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
 import 'package:go_biky/core/router/app_router.dart';
+import 'package:go_biky/core/router/bottom_nav_app.dart';
+import 'package:go_biky/core/service_locator/service_locator.dart';
 import 'package:go_biky/core/style/assets.dart';
 import 'package:go_biky/core/widget/widgets.dart';
+import 'package:go_biky/feature/notifications/app_notification.dart';
+import 'package:go_biky/feature/notifications/presentation/view_model/cubit/notifications_cubit.dart';
 import 'package:go_biky/feature/oil_change/oil_status.dart';
 import 'package:go_biky/feature/oil_change/presentation/view/oil_change_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -48,7 +53,6 @@ class HomeScreen extends StatelessWidget {
                 _Header(
                   name: _riderName,
                   image: _riderImage,
-                  hasNewNotifications: true,
                   oilStatus: oilStatus,
                 ),
                 Gaps.v(20.h),
@@ -83,13 +87,11 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.name,
     required this.image,
-    required this.hasNewNotifications,
     required this.oilStatus,
   });
 
   final String name;
   final String? image;
-  final bool hasNewNotifications;
 
   /// آخر التحية بيتغير معاها ("طريقك أخضر" / "حان وقت العناية")
   final OilStatus oilStatus;
@@ -147,7 +149,12 @@ class _Header extends StatelessWidget {
           ),
         ),
         Gaps.h(12.w),
-        _NotificationButton(hasNew: hasNewNotifications),
+        BlocSelector<NotificationsCubit, List<AppNotification>, bool>(
+          bloc: getIt<NotificationsCubit>(),
+          selector: (notifications) =>
+              notifications.any((item) => !item.isRead),
+          builder: (context, hasNew) => _NotificationButton(hasNew: hasNew),
+        ),
       ],
     );
   }
@@ -163,8 +170,7 @@ class _NotificationButton extends StatelessWidget {
     final colors = context.appColors;
 
     return IconButton(
-      // TODO: فتح شاشة الإشعارات لما تتعمل
-      onPressed: () {},
+      onPressed: () => context.push(AppRouter.notifications),
       tooltip: 'home.notifications'.tr(),
       style: IconButton.styleFrom(
         backgroundColor: colors.bgSecondary,
@@ -506,7 +512,13 @@ class _OilRing extends StatelessWidget {
 }
 
 class _QuickLink {
-  const _QuickLink(this.labelKey, this.icon, {required this.image, this.route});
+  const _QuickLink(
+    this.labelKey,
+    this.icon, {
+    required this.image,
+    this.route,
+    this.tab,
+  });
 
   final String labelKey;
 
@@ -514,14 +526,27 @@ class _QuickLink {
   final IconData icon;
   final String? image;
 
-  /// الشاشة اللي الكارت بيفتحها، وnull لو لسه ماتعملتش
+  /// الشاشة اللي الكارت بيفتحها
   final String? route;
+
+  /// أو التاب اللي بيفتحه لو الشاشة تاب في البار
+  final BottomNavTab? tab;
 }
 
 // TODO: صور الكروت لسه مش في الـ assets
 const _quickLinks = [
-  _QuickLink('home.maintenanceAndParts', Icons.build_outlined, image: null),
-  _QuickLink('bottomNav.orders', Icons.assignment_outlined, image: null),
+  _QuickLink(
+    'home.maintenanceAndParts',
+    Icons.build_outlined,
+    image: null,
+    tab: BottomNavTab.spareParts,
+  ),
+  _QuickLink(
+    'bottomNav.orders',
+    Icons.assignment_outlined,
+    image: null,
+    tab: BottomNavTab.orders,
+  ),
   _QuickLink(
     'home.oilLog',
     Icons.oil_barrel_outlined,
@@ -561,9 +586,12 @@ class _QuickLinkCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
-        // TODO: التنقل لباقي الكروت لما شاشاتهم تتعمل
         onTap: () {
-          if (link.route case final route?) context.push(route);
+          if (link.tab case final tab?) {
+            BottomNavApp.openTab(context, tab);
+          } else if (link.route case final route?) {
+            context.push(route);
+          }
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

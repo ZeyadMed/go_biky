@@ -24,6 +24,9 @@ class CustomButton extends StatelessWidget {
   final double? fontSize;
   final FontWeight? fontWeight;
 
+  /// الأيقونة بعد النص بدل ما تبقى قبله
+  final bool iconAtEnd;
+
   const CustomButton({
     super.key,
     required this.title,
@@ -40,6 +43,7 @@ class CustomButton extends StatelessWidget {
     this.isLoading = false,
     this.fontSize,
     this.fontWeight,
+    this.iconAtEnd = false,
   });
 
   @override
@@ -80,7 +84,10 @@ class CustomButton extends StatelessWidget {
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (icon != null) ...[icon!, Gaps.h(10.w)],
+                      if (icon != null && !iconAtEnd) ...[
+                        icon!,
+                        Gaps.h(10.w),
+                      ],
                       Flexible(
                         child: Text(
                           title,
@@ -93,6 +100,10 @@ class CustomButton extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (icon != null && iconAtEnd) ...[
+                        Gaps.h(10.w),
+                        icon!,
+                      ],
                     ],
                   ),
           ),

@@ -9,6 +9,9 @@ import 'package:go_biky/core/http/api_consumer.dart';
 import 'package:go_biky/core/http/auth_interceptor.dart';
 import 'package:go_biky/core/http/endpoints.dart';
 import 'package:go_biky/core/http/token_refresh_service.dart';
+import 'package:go_biky/feature/notifications/presentation/view_model/cubit/notifications_cubit.dart';
+import 'package:go_biky/feature/orders/presentation/view_model/cubit/orders_cubit.dart';
+import 'package:go_biky/feature/spare_parts/presentation/view_model/cubit/cart_cubit.dart';
 
 class SharedServiceLocator {
   static Future<void> execute({required GetIt getIt}) async {
@@ -46,6 +49,20 @@ class SharedServiceLocator {
     );
 
     // الـ locators بتاعة كل feature تتنادى هنا بعد GenericDataSource
+
+    // السلة والطلبات والإشعارات واحدة للتطبيق كله، وبيتمسحوا مع الـ reset
+    getIt.registerLazySingleton<CartCubit>(
+      CartCubit.new,
+      dispose: (cubit) => cubit.close(),
+    );
+    getIt.registerLazySingleton<OrdersCubit>(
+      OrdersCubit.new,
+      dispose: (cubit) => cubit.close(),
+    );
+    getIt.registerLazySingleton<NotificationsCubit>(
+      NotificationsCubit.new,
+      dispose: (cubit) => cubit.close(),
+    );
   }
 
   static BaseOptions _baseOptions() {

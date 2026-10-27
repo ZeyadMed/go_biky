@@ -1,9 +1,19 @@
 import 'package:go_biky/core/router/bottom_nav_app.dart';
 import 'package:go_biky/feature/auth/presentation/view/login_screen.dart';
+import 'package:go_biky/feature/notifications/presentation/view/notifications_screen.dart';
 import 'package:go_biky/feature/oil_change/oil_change_proof.dart';
 import 'package:go_biky/feature/oil_change/presentation/view/oil_change_screen.dart';
 import 'package:go_biky/feature/oil_change/presentation/view/oil_change_status_screen.dart';
 import 'package:go_biky/feature/oil_change/presentation/view/oil_log_screen.dart';
+import 'package:go_biky/feature/orders/presentation/view/order_details_screen.dart';
+import 'package:go_biky/feature/profile/policy_document.dart';
+import 'package:go_biky/feature/profile/presentation/view/contact_us_screen.dart';
+import 'package:go_biky/feature/profile/presentation/view/policy_screen.dart';
+import 'package:go_biky/feature/spare_parts/presentation/view/parts_order_screen.dart';
+import 'package:go_biky/feature/spare_parts/presentation/view/parts_order_sent_screen.dart';
+import 'package:go_biky/feature/spare_parts/presentation/view/spare_part_details_screen.dart';
+import 'package:go_biky/feature/spare_parts/spare_part.dart';
+import 'package:go_biky/feature/spare_parts/spare_parts_order.dart';
 import 'package:go_biky/feature/splash/presentation/view/splash_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:go_biky/main.dart';
@@ -15,6 +25,13 @@ abstract class AppRouter {
   static const String oilChange = '/oilChange';
   static const String oilChangeStatus = '/oilChangeStatus';
   static const String oilLog = '/oilLog';
+  static const String sparePartDetails = '/sparePartDetails';
+  static const String partsOrder = '/partsOrder';
+  static const String partsOrderSent = '/partsOrderSent';
+  static const String orderDetails = '/orderDetails';
+  static const String notifications = '/notifications';
+  static const String contactUs = '/contactUs';
+  static const String policy = '/policy';
 
   static final GoRouter router = GoRouter(
     navigatorKey: navigatorKey,
@@ -44,6 +61,48 @@ abstract class AppRouter {
             OilChangeStatusScreen(proof: state.extra! as OilChangeProof),
       ),
       GoRoute(path: oilLog, builder: (context, state) => const OilLogScreen()),
+
+      // -----------------------------------Spare Parts--------------------------------
+      GoRoute(
+        path: sparePartDetails,
+        builder: (context, state) =>
+            SparePartDetailsScreen(part: state.extra! as SparePart),
+      ),
+      GoRoute(
+        path: partsOrder,
+        builder: (context, state) => const PartsOrderScreen(),
+      ),
+      GoRoute(
+        path: partsOrderSent,
+        builder: (context, state) =>
+            PartsOrderSentScreen(order: state.extra! as SparePartsOrder),
+      ),
+
+      // -----------------------------------Orders--------------------------------
+      GoRoute(
+        path: orderDetails,
+        builder: (context, state) =>
+            OrderDetailsScreen(order: state.extra! as SparePartsOrder),
+      ),
+
+      // -----------------------------------Notifications--------------------------------
+      GoRoute(
+        path: notifications,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+
+      // -----------------------------------Profile--------------------------------
+      // الـ extra موضوع الرسالة لو اتفتحت من طلب
+      GoRoute(
+        path: contactUs,
+        builder: (context, state) =>
+            ContactUsScreen(subject: state.extra as String?),
+      ),
+      GoRoute(
+        path: policy,
+        builder: (context, state) =>
+            PolicyScreen(type: state.extra! as PolicyType),
+      ),
     ],
   );
 }
