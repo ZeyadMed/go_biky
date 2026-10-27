@@ -1,24 +1,13 @@
 import 'package:equatable/equatable.dart';
-import 'package:hive/hive.dart';
-part 'user_token.g.dart';
 
-@HiveType(typeId: 0)
 class UserToken extends Equatable {
-  @HiveField(0)
   final String accessToken;
-  @HiveField(1)
   final String refreshToken;
-  @HiveField(2)
   final String message;
-  @HiveField(3)
   final String userType;
-  @HiveField(4)
   final String userId;
-  @HiveField(5)
   final String email;
-  @HiveField(6)
   final String userName;
-  @HiveField(7)
   final DateTime expiresAtUtc;
 
   const UserToken({

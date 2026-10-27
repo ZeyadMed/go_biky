@@ -1,9 +1,106 @@
-part of "helpers.dart";
+import 'dart:io';
+
+import 'package:dio/dio.dart';
+import 'package:easy_localization/easy_localization.dart';
+import '../cache_manager/cache_manager.dart';
+import '../http/api_consumer.dart';
+import '../http/either.dart';
+import '../http/failure.dart';
+import '../http/params.dart';
+import '../http/session.dart';
+import 'logger.dart';
 
 class GenericDataSource {
   final ApiConsumer _apiConsumer;
 
   GenericDataSource(this._apiConsumer);
+
+  /// بتبعت طلب مصادقة (لوجين / تسجيل / تحقق OTP) وبتحفظ التوكنين
+  /// اللي راجعين في الريسبونس قبل ما ترجع الداتا.
+  ///
+  /// الريسبونس المتوقع:
+  /// { "accessToken": "...", "refreshToken": "...", "message": {...} }
+  Future<Either<Failure, T>> authenticate<T>({
+    required String endpoint,
+    Map<String, dynamic>? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+    T Function(Map<String, dynamic>)? fromJson,
+  }) async {
+    final result = await _apiConsumer.post(
+      endpoint,
+      data: data,
+      queryParameters: queryParameters,
+      headers: headers,
+    );
+
+    // بنستخدم isError بدل fold عشان fold متزامنة والحفظ محتاج await
+    if (result.isError) {
+      return Left(result.throwError());
+    }
+
+    final right = result.getOrThrow();
+
+    // بعض الاند بوينتس بترجع التوكنز في الروت وبعضها جوه data
+    // فبندور في الاتنين بدل ما نفترض شكل واحد
+    final payload = right['data'] is Map<String, dynamic>
+        ? right['data'] as Map<String, dynamic>
+        : right;
+
+    final accessToken =
+        (payload['accessToken'] ?? right['accessToken']) as String?;
+    final refreshToken =
+        (payload['refreshToken'] ?? right['refreshToken']) as String?;
+
+    if (accessToken == null || accessToken.isEmpty) {
+      loggerWarn('Auth response had no accessToken');
+      return Left(ParsingFailure(message: 'errors.invalidAuthResponse'.tr()));
+    }
+
+    // الـ refreshToken هو اللي بيخلي الجلسة مستمرة، فلو مش موجود
+    // المستخدم هيتطرد أول ما الـ access يقع.
+    if (refreshToken == null || refreshToken.isEmpty) {
+      loggerWarn('Auth response had no refreshToken');
+    }
+
+    // بنفك الريسبونس الأول، ولو فشل مانحفظش حاجة. قبل كده التوكنز كانت
+    // بتتحفظ والمستخدم يشوف خطأ مع إنه فعلياً بقى داخل
+    T? parsed;
+    if (fromJson != null) {
+      try {
+        parsed = fromJson(right);
+      } catch (e, stackTrace) {
+        loggerError(stackTrace);
+        loggerWarn(e.toString());
+        return Left(ParsingFailure(message: e.toString()));
+      }
+    }
+
+    await CacheManager.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken ?? '',
+    );
+
+    // بنمسح بيانات أي حساب قديم الأول، عشان لو الريسبونس ناقص حاجة
+    // (زي userId) مايفضلش مكانها قيمة الحساب اللي قبله
+    await CacheManager.clearUserData();
+
+    // بيانات المستخدم بترجع مع التوكنز في اللوجين وتفعيل الرقم،
+    // فبنحفظها هنا عشان الشاشات تقراها من غير ريكوست زيادة
+    final userName = payload['userName']?.toString();
+    if (userName != null) {
+      await CacheManager.saveUserData(
+        userId: payload['userId']?.toString() ?? '',
+        userName: userName,
+        role: payload['role']?.toString() ?? '',
+        email: payload['email']?.toString(),
+      );
+    }
+
+    Session.started();
+
+    return Right(parsed as T);
+  }
 
   Future<Either<Failure, List<T>>> fetchData<T>({
     required String endpoint,
@@ -11,42 +108,52 @@ class GenericDataSource {
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? data,
     Map<String, dynamic>? headers,
-    required T Function(dynamic) fromJson,
+    required T Function(Map<String, dynamic>) fromJson,
   }) async {
     final result = await _apiConsumer.get(
       endpoint,
       queryParameters: {
-        if (paginationParams != null) ...paginationParams.toJson(),
-        if (queryParameters != null) ...queryParameters,
+        ...?paginationParams?.toJson(),
+        ...?queryParameters,
       }..removeWhere((key, value) => value == null || value == ''),
       headers: headers,
       data: data,
     );
-
-    return result.fold((left) => Left(left), (right) {
-      try {
-        final responseData = right['data'];
-
-        // ✅ Case 1: data مباشرة List
-        if (responseData is List) {
-          return Right(responseData.map((e) => fromJson(e)).toList());
-        }
-
-        // ✅ Case 2: data هو Map وجواه data List (paginated)
-        if (responseData is Map) {
-          final innerData = responseData['data'];
-          if (innerData is List) {
-            return Right(innerData.map((e) => fromJson(e)).toList());
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          // If result is a map that contains a 'data' list
+          if (right['data'] is Map && right['data']['data'] is List) {
+            final items = (right['data']['data'] as List)
+                .map((e) => fromJson(e))
+                .toList();
+            return Right(items);
           }
-        }
 
-        return const Right([]);
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return const Right([]);
-      }
-    });
+          // If result is a list directly
+          if (right['data'] is List) {
+            final items =
+                (right['data'] as List).map((e) => fromJson(e)).toList();
+            return Right(items);
+          }
+
+          // If data is a list directly
+          if (right['data'] is List) {
+            final items =
+                (right['data'] as List).map((e) => fromJson(e)).toList();
+            return Right(items);
+          }
+
+          // no matching collection found
+          return const Right([]);
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return const Right([]);
+        }
+      },
+    );
   }
 
   Future<Either<Failure, T>> fetchResult<T>({
@@ -55,49 +162,54 @@ class GenericDataSource {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
-    T Function(dynamic)? fromJson,
+    T Function(Map<String, dynamic>)? fromJson,
   }) async {
-    final result = await _apiConsumer.get(
-      endpoint,
-      data: data,
-      queryParameters: {
-        if (params != null) ...params.toJson(),
-        if (queryParameters != null) ...queryParameters,
-      },
-      headers: headers,
-    );
-    return result.fold((left) => Left(left), (right) {
-      try {
+    final result = await _apiConsumer.get(endpoint,
+        data: data,
+        queryParameters: {
+          ...?params?.toJson(),
+          ...?queryParameters,
+        },
+        headers: headers);
+    return result.fold(
+      (left) => Left(left),
+      (right) {
         if (T == Null) {
           return Right(null as T);
         }
-
-        final apiData = right["data"];
-        final message = right["message"];
         if (T == String) {
-          logger('apiData: $apiData');
-          return Right((right["result"] ?? apiData ?? "") as T);
+          logger('right: ${right["data"]}');
+          return Right(right["data"] as T);
         }
-        if (fromJson != null) {
-          Map<String, dynamic> dataToInject;
-          if (apiData is Map<String, dynamic>) {
-            dataToInject = Map<String, dynamic>.from(apiData);
-          } else {
-            dataToInject = {};
+
+        // If no `fromJson` parser was provided, assume caller expects no payload
+        // (e.g. `Either<Failure, void>`). Return a successful empty value.
+        if (fromJson == null) {
+          return Right(null as T);
+        }
+
+        // If a `fromJson` is provided, try to pass the nested payload where possible.
+        // Many APIs wrap the payload inside a top-level `data` or `result` object.
+        try {
+          final Map<String, dynamic> response = right;
+          final dynamic payload = response.containsKey('data')
+              ? response['data']
+              : response.containsKey('data')
+                  ? response['data']
+                  : response;
+
+          if (payload is Map<String, dynamic>) {
+            return Right(fromJson(payload));
           }
 
-          if (message != null) {
-            dataToInject['message'] = message;
-          }
-          return Right(fromJson(dataToInject));
+          return Right(fromJson(response));
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-        return Right(null as T);
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
   }
 
   Future<Either<Failure, T>> postData<T>({
@@ -105,53 +217,41 @@ class GenericDataSource {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
-    T Function(dynamic)? fromJson,
-    bool skipAuthRefresh = false, // Add this parameter
+    T Function(Map<String, dynamic>)? fromJson,
   }) async {
     final result = await _apiConsumer.post(
       endpoint,
       data: data,
       queryParameters: queryParameters,
-      headers: {...headers ?? {}},
-      skipAuthRefresh: skipAuthRefresh, // Pass it through
+      headers: headers,
     );
-    return result.fold((left) => Left(left), (right) {
-      try {
-        final apiData = right['data'];
-        final message = right['message'];
-        if (T == int) {
-          if (apiData is Map) {
-            return Right((apiData['driverId'] ?? 0) as T);
-          }
-          return Right((apiData ?? 0) as T);
-        }
-        if (T == Null) {
-          return Right(null as T);
-        } else if (T == String) {
-          logger('right: $right');
-          return Right((apiData ?? "") as T);
-        } else {
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        logger('GenericDataSource.postData raw right: $right');
+        try {
+          // بنبعت الريسبونس كامل عشان الموديل يوصل للرسالة اللي في الروت
+          // وللداتا اللي جوه data، وهو اللي بيفك الشكل حسب الاند بوينت
           if (fromJson != null) {
-            Map<String, dynamic> dataToInject;
-            if (apiData is Map<String, dynamic>) {
-              dataToInject = Map<String, dynamic>.from(apiData);
-            } else {
-              dataToInject = {};
-            }
-
-            if (message != null) {
-              dataToInject['message'] = message;
-            }
-            return Right(fromJson(dataToInject));
+            return Right(fromJson(right));
           }
-          return Right(null as T);
+          if (T == Null) {
+            return Right(right as T);
+          } else if (T == String) {
+            logger('right: $right');
+            return Right(right['result'] ?? "" as T);
+          } else if (T == int) {
+            return Right(right['result'] ?? 0 as T);
+          } else {
+            return Right(right as T);
+          }
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
   }
 
   Future<Either<Failure, T>> postFormData<T>({
@@ -159,6 +259,7 @@ class GenericDataSource {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
+    T Function(Map<String, dynamic>)? fromJson,
   }) async {
     // Process the data to handle lists properly
     final processedData = _processFormData(data ?? {});
@@ -167,32 +268,75 @@ class GenericDataSource {
       endpoint,
       formData: await processedData,
       queryParameters: queryParameters,
-      options: Options(headers: headers),
+      options: Options(
+        headers: headers,
+      ),
     );
 
-    return result.fold((left) => Left(left), (right) {
-      try {
-        if (T == Null) {
-          return Right(null as T);
-        } else if (T == int) {
-          return Right((right['result'] ?? 0) as T);
-        } else if (T == String) {
-          logger('right: $right');
-          return Right((right['redirect_url'] ?? "") as T);
-        } else {
-          return Right(null as T);
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          // زي postData، الموديل بياخد الريسبونس كامل ويفكه بنفسه
+          if (fromJson != null) {
+            return Right(fromJson(right));
+          }
+          if (T == Null) {
+            return Right(null as T);
+          } else if (T == int) {
+            return Right((right['id'] ?? 0) as T);
+          } else if (T == String) {
+            logger('right: $right');
+            return Right((right['redirect_url'] ?? "") as T);
+          } else {
+            return Right(null as T);
+          }
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
+  }
+
+  /// زي [postFormData] بس PUT، للتعديلات اللي بتبعت ملف زي صورة البروفايل
+  Future<Either<Failure, T>> putFormData<T>({
+    required String endpoint,
+    Map<String, dynamic>? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+    T Function(Map<String, dynamic>)? fromJson,
+  }) async {
+    final processedData = await _processFormData(data ?? {});
+
+    final result = await _apiConsumer.put(
+      endpoint,
+      data: FormData.fromMap(processedData),
+      queryParameters: queryParameters,
+      headers: headers,
+    );
+
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          // الموديل بياخد الريسبونس كامل ويفكه بنفسه
+          if (fromJson != null) {
+            return Right(fromJson(right));
+          }
+          return Right(null as T);
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
+        }
+      },
+    );
   }
 
   Future<Map<String, dynamic>> _processFormData(
-    Map<String, dynamic> data,
-  ) async {
+      Map<String, dynamic> data) async {
     final processed = <String, dynamic>{};
 
     for (final entry in data.entries) {
@@ -203,10 +347,16 @@ class GenericDataSource {
         // Handle File objects by converting to MultipartFile
         final file = value;
         final fileName = file.path.split('/').last;
-        processed[key] = await MultipartFile.fromFile(
-          file.path,
-          filename: fileName,
-        );
+        // guard against missing files to avoid PathNotFoundException
+        if (await file.exists()) {
+          processed[key] = await MultipartFile.fromFile(
+            file.path,
+            filename: fileName,
+          );
+        } else {
+          loggerWarn(
+              'File for key `$key` does not exist: ${file.path} -- skipping attachment.');
+        }
       } else if (value is List) {
         // Handle lists
         processed.remove(key);
@@ -215,10 +365,15 @@ class GenericDataSource {
             // Handle File in list
             final file = value[i] as File;
             final fileName = file.path.split('/').last;
-            processed['$key[$i]'] = await MultipartFile.fromFile(
-              file.path,
-              filename: fileName,
-            );
+            if (await file.exists()) {
+              processed['$key[$i]'] = await MultipartFile.fromFile(
+                file.path,
+                filename: fileName,
+              );
+            } else {
+              loggerWarn(
+                  'File for key `$key[$i]` does not exist: ${file.path} -- skipping attachment.');
+            }
           } else {
             processed['$key[$i]'] = value[i];
           }
@@ -243,34 +398,35 @@ class GenericDataSource {
 
   Future<Either<Failure, T>> deleteData<T>({
     required String endpoint,
-    Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
   }) async {
     final result = await _apiConsumer.delete(
       endpoint,
-      data: data,
       queryParameters: queryParameters,
       headers: headers,
     );
-    return result.fold((left) => Left(left), (right) {
-      try {
-        if (T == Null) {
-          return Right(null as T);
-        } else if (T == int) {
-          return Right(right['id'] ?? 0 as T);
-        } else if (T == String) {
-          logger('right: $right');
-          return Right(right['redirect_url'] ?? "" as T);
-        } else {
-          return Right(null as T);
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          if (T == Null) {
+            return Right(null as T);
+          } else if (T == int) {
+            return Right(right['id'] ?? 0 as T);
+          } else if (T == String) {
+            logger('right: $right');
+            return Right(right['redirect_url'] ?? "" as T);
+          } else {
+            return Right(null as T);
+          }
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
   }
 
   Future<Either<Failure, T>> patchData<T>({
@@ -278,7 +434,6 @@ class GenericDataSource {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
-    T Function(dynamic json)? fromJson,
   }) async {
     final result = await _apiConsumer.patch(
       endpoint,
@@ -286,29 +441,27 @@ class GenericDataSource {
       queryParameters: queryParameters,
       headers: headers,
     );
-
-    return result.fold((left) => Left(left), (right) {
-      try {
-        final apiData = right['data'];
-
-        if (T == Null) {
-          return Right(null as T);
-        } else if (T == int) {
-          return Right((apiData?['id'] ?? 0) as T);
-        } else if (T == String) {
-          return Right((apiData ?? "") as T);
-        } else {
-          if (fromJson != null) {
-            return Right(fromJson(apiData ?? right));
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          if (T == Null) {
+            return Right(null as T);
+          } else if (T == int) {
+            return Right(right['id'] ?? 0 as T);
+          } else if (T == String) {
+            logger('right: $right');
+            return Right(right['redirect_url'] ?? "" as T);
+          } else {
+            return Right(null as T);
           }
-          return Left(ParsingFailure(message: "fromJson is required"));
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
   }
 
   Future<Either<Failure, T>> updateData<T>({
@@ -323,52 +476,57 @@ class GenericDataSource {
       queryParameters: queryParameters,
       headers: headers,
     );
-    return result.fold((left) => Left(left), (right) {
-      try {
-        if (T == Null) {
-          return Right(null as T);
-        } else if (T == int) {
-          return Right(right['id'] ?? 0 as T);
-        } else if (T == String) {
-          logger('right: $right');
-          return Right(right['redirect_url'] ?? "" as T);
-        } else {
-          return Right(null as T);
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          if (T == Null) {
+            return Right(null as T);
+          } else if (T == int) {
+            return Right(right['id'] ?? 0 as T);
+          } else if (T == String) {
+            logger('right: $right');
+            return Right(right['redirect_url'] ?? "" as T);
+          } else {
+            return Right(null as T);
+          }
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
   }
 
-  Future<Either<Failure, T>> head<T>({
-    required String endpoint,
-    required int id,
-    Map<String, dynamic>? headers,
-    Map<String, dynamic>? queryParameters,
-  }) async {
+  Future<Either<Failure, T>> head<T>(
+      {required String endpoint,
+      required int id,
+      Map<String, dynamic>? headers,
+      Map<String, dynamic>? queryParameters}) async {
     final result = await _apiConsumer.head(
       endpoint,
       queryParameters: queryParameters,
       headers: headers,
     );
-    return result.fold((left) => Left(left), (right) {
-      try {
-        if (T == Null) {
-          return Right(null as T);
-        } else if (T == String) {
-          logger('right: $right');
-          return Right(right['redirect_url'] ?? "" as T);
-        } else {
-          return Right(null as T);
+    return result.fold(
+      (left) => Left(left),
+      (right) {
+        try {
+          if (T == Null) {
+            return Right(null as T);
+          } else if (T == String) {
+            logger('right: $right');
+            return Right(right['redirect_url'] ?? "" as T);
+          } else {
+            return Right(null as T);
+          }
+        } catch (e, stackTrace) {
+          loggerError(stackTrace);
+          loggerWarn(e.toString());
+          return Left(ParsingFailure(message: e.toString()));
         }
-      } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
-      }
-    });
+      },
+    );
   }
 }

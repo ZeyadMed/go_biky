@@ -1,72 +1,86 @@
-part of '../service_locator.dart';
+import 'dart:developer';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:go_biky/core/helpers/generic_data_source.dart';
+import 'package:go_biky/core/http/api_consumer.dart';
+import 'package:go_biky/core/http/auth_interceptor.dart';
+import 'package:go_biky/core/http/endpoints.dart';
+import 'package:go_biky/core/http/token_refresh_service.dart';
 
 class SharedServiceLocator {
   static Future<void> execute({required GetIt getIt}) async {
-    // final token = HiveServiceImpl.instance.getAccessToken();
+    getIt.registerLazySingleton<TokenRefreshService>(
+      () => TokenRefreshService(),
+    );
 
-    // loggerWarn("token in sl $token");
-    loggerWarn(
-        "Accept Language in sl ${navigatorKey.currentContext?.isArabic}");
-    getIt.registerLazySingleton<Dio>(
-      () {
-        final dio = Dio(
-          BaseOptions(
-            baseUrl: Endpoints.baseUrl,
-            connectTimeout: const Duration(seconds: 60),
-            receiveTimeout: const Duration(seconds: 60),
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache',
-              'Accept-Language':
-                  navigatorKey.currentContext?.isArabic ?? true ? 'ar' : 'en',
-            },
-          ),
-        );
+    getIt.registerLazySingleton<Dio>(() {
+      final dio = Dio(_baseOptions());
 
-        dio.interceptors.addAll([
-          // الـ auth أول واحد — بيحقن التوكن وبيتعامل مع 401 والتجديد.
-          AuthInterceptor(
-            dio: dio,
-            session: getIt<SessionManager>(),
-            onSessionExpired: () {
-              final context = navigatorKey.currentContext;
-              if (context == null) return;
-              context.showTopSnackBar(
-                message: 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى',
-                type: SnackBarType.error,
-              );
-              // مسار الدخول مكتوب صريح عشان ما نستوردش `AppRouter` هنا
-              // ونعمل دورة استيراد (router → screens → cubits → DI).
-              context.go('/login');
-            },
-          ),
-          if (kDebugMode)
-            PrettyDioLogger(
-              requestHeader: true,
-              requestBody: true,
-              responseBody: true,
-              responseHeader: false,
-              error: true,
-              compact: true,
-              enabled: true,
-              request: true,
-              maxWidth: 90,
-            ),
-        ]);
+      // Dio تاني بنفس الإعدادات من غير الانترسبتور، الانترسبتور بيعيد بيه
+      // الطلب بعد التجديد عشان مايحصلش deadlock في الطابور بتاعه
+      final retryDio = Dio(_baseOptions());
+      _addLogger(retryDio);
 
-        return dio;
+      // الـ Authorization بقى بيتحط في الانترسبتور وقت كل ريكوست،
+      // مش هنا وقت التسجيل، عشان ياخد أحدث توكن بعد اللوجين أو التجديد.
+      dio.interceptors.add(
+        AuthInterceptor(
+          retryDio: retryDio,
+          refreshService: getIt<TokenRefreshService>(),
+        ),
+      );
+      _addLogger(dio);
+
+      return dio;
+    });
+    getIt.registerLazySingleton<ApiConsumer>(
+      () => BaseApiConsumer(dio: getIt<Dio>()),
+    );
+
+    // كل الداتا سورس بتاخده في الكونستراكتور فلازم يكون متسجل قبلهم
+    getIt.registerLazySingleton<GenericDataSource>(
+      () => GenericDataSource(getIt<ApiConsumer>()),
+    );
+
+    // الـ locators بتاعة كل feature تتنادى هنا بعد GenericDataSource
+  }
+
+  static BaseOptions _baseOptions() {
+    return BaseOptions(
+      baseUrl: Endpoints.baseUrl,
+      connectTimeout: const Duration(seconds: 60),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        // Disable gzip/deflate from server to avoid malformed compressed responses
+        'Accept-Encoding': 'identity',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Accept-Language': 'ar',
       },
     );
-    getIt.registerLazySingleton<ApiConsumer>(
-        () => ApiConsumerImpl(dio: getIt<Dio>()));
-    getIt.registerLazySingleton<GenericDataSource>(
-        () => GenericDataSource(getIt<ApiConsumer>()));
-    getIt.registerLazySingleton<SyncManager>(() => SyncManager());
-    getIt.registerLazySingleton<ConnectivityService>(
-        () => ConnectivityService.instance);
+  }
 
-    // getIt.registerLazySingleton<SyncBloc>(() => SyncBloc(syncManager: getIt<SyncManager>(), connectivityService: getIt<ConnectivityService>()));
+  static void _addLogger(Dio dio) {
+    if (!kDebugMode) return;
+    dio.interceptors.add(
+      PrettyDioLogger(
+        logPrint: (object) {
+          log(object.toString());
+        },
+        requestHeader: true,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+        compact: true,
+        enabled: true,
+        request: true,
+        maxWidth: 90,
+      ),
+    );
   }
 }

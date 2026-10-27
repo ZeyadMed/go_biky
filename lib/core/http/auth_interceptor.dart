@@ -1,177 +1,131 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
-import 'package:go_biky/core/helpers/helpers.dart';
-import 'package:go_biky/core/http/http.dart';
-import 'package:go_biky/core/local_storage/local_storage.dart';
-import 'package:go_biky/core/session/session_manager.dart';
-import 'package:go_biky/feature/auth/user_token.dart';
+import 'package:go_biky/core/cache_manager/cache_manager.dart';
+import 'package:go_biky/core/helpers/logger.dart';
+import 'package:go_biky/core/http/endpoints.dart';
+import 'package:go_biky/core/http/session.dart';
+import 'package:go_biky/core/http/token_refresh_service.dart';
 
-/// بيحقن الـ access token في كل ريكوست، ولما السيرفر يرجّع 401 بيجدّد
-/// التوكن مرة واحدة بس ويعيد الريكوست الأصلي.
+/// بيحط الـ accessToken على كل ريكوست، ولما ييجي 401 بيجدده
+/// بالـ refreshToken ويعيد الريكوست تاني من غير ما المستخدم يحس.
 ///
-/// كل الريكوستات اللي بتوقع في نفس الوقت بتستنى نفس عملية التجديد
-/// (قفل واحد) عشان ما نبعتش عشرين ريكوست تجديد ونحرق الـ refresh token.
-class AuthInterceptor extends Interceptor {
-  final Dio _dio;
-  final SessionManager _session;
+/// كده التوكن بيتقرا من الكاش وقت الطلب نفسه، مش وقت تسجيل الـ Dio،
+/// فبعد اللوجين مش محتاجين نعمل reset للـ DI عشان الهيدر يتحدث.
+class AuthInterceptor extends QueuedInterceptor {
+  AuthInterceptor({required this._retryDio, required this._refreshService});
 
-  /// بيتنادى لما التجديد يفشل — الجلسة خلصت ولازم المستخدم يدخل تاني.
-  final FutureOr<void> Function()? onSessionExpired;
+  /// Dio من غير الانترسبتور ده. لو عدنا الطلب بنفس الـ Dio وفشل، الـ onError
+  /// بتاعه هيقف في الطابور ورا الطلب اللي مستنيه، ويحصل deadlock.
+  final Dio _retryDio;
+  final TokenRefreshService _refreshService;
 
-  AuthInterceptor({
-    required Dio dio,
-    required SessionManager session,
-    this.onSessionExpired,
-  })  : _dio = dio,
-        _session = session;
-
-  /// المسارات اللي ما بتحتاجش توكن — لو 401 جت منها يبقى دي مشكلة
-  /// بيانات دخول مش توكن منتهي، فما بنحاولش نجدد.
-  static const Set<String> _publicPaths = {
-    Endpoints.shareholderRequestOtp,
-    Endpoints.shareholderResendOtp,
-    Endpoints.shareholderVerifyOtp,
-    Endpoints.refreshToken,
-  };
-
-  static bool _isPublic(String path) =>
-      _publicPaths.any((public) => path.contains(public));
-
-  /// علامة بنحطها على الريكوست المعاد إرساله عشان ما يدخلش في حلقة
-  /// تجديد لا نهائية لو رجع 401 تاني.
-  static const String _retriedKey = 'auth_retried';
-
-  // قفل التجديد — مشترك بين كل الـ instances.
-  static Completer<bool>? _refreshCompleter;
+  static const _retriedFlag = 'auth_interceptor_retried';
+  static const _skipAuthFlag = 'auth_interceptor_skip';
 
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
-  ) {
-    if (!_isPublic(options.path)) {
-      final header = _session.authHeader;
-      if (header.isNotEmpty) {
-        options.headers.addAll(header);
-      }
+  ) async {
+    // الداتا سورسز بتبعت Authorization: null للاند بوينتس المفتوحة،
+    // فلازم نحترمه ومانكتبش فوقه التوكن المحفوظ
+    final optedOut =
+        options.headers.containsKey('Authorization') &&
+        options.headers['Authorization'] == null;
+
+    // طلب التجديد نفسه بياخد التوكن في الـ body مش في الهيدر
+    if (optedOut ||
+        options.path.contains(Endpoints.refreshToken) ||
+        Endpoints.isPublicAuth(options.path)) {
+      options.headers.remove('Authorization');
+      options.extra[_skipAuthFlag] = true;
+      return handler.next(options);
+    }
+
+    final accessToken = await CacheManager.getAccessToken();
+    if (accessToken != null && accessToken.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $accessToken';
     } else {
-      // المسارات العامة لازم تتبعت بدون توكن قديم/منتهي.
       options.headers.remove('Authorization');
     }
     handler.next(options);
   }
 
   @override
-  Future<void> onError(
-    DioException err,
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final requestOptions = err.requestOptions;
+
+    final isUnauthorized = err.response?.statusCode == 401;
+    final skipsAuth = requestOptions.extra[_skipAuthFlag] == true;
+    final alreadyRetried = requestOptions.extra[_retriedFlag] == true;
+
+    // بنجدد مرة واحدة بس لكل ريكوست، ومابنجددش للاند بوينتس المفتوحة
+    if (!isUnauthorized || skipsAuth || alreadyRetried) {
+      return handler.next(err);
+    }
+
+    // الـ onError هنا بيشتغل واحد ورا التاني، فلو ريكوست قبلنا جدد التوكن
+    // بنعيد بالجديد على طول بدل ما نبعت refresh تاني ونحرق التوكن اللي اتدوّر
+    final currentToken = await CacheManager.getAccessToken();
+    final sentHeader = requestOptions.headers['Authorization'];
+    if (currentToken != null &&
+        currentToken.isNotEmpty &&
+        sentHeader != 'Bearer $currentToken') {
+      return _retry(requestOptions, currentToken, handler);
+    }
+
+    if (!_refreshService.hasRefreshToken) {
+      loggerWarn('Got 401 with no refresh token stored');
+      await Session.clear();
+      return handler.next(err);
+    }
+
+    switch (await _refreshService.refresh()) {
+      case RefreshSuccess(:final accessToken):
+        return _retry(requestOptions, accessToken, handler);
+      case RefreshSessionExpired():
+        loggerWarn('Refresh rejected, session expired');
+        await Session.clear();
+        return handler.next(err);
+      case RefreshTransientFailure(:final cause):
+        // مابنمسحش التوكنز، وبنرجع خطأ التجديد (نت/timeout/5xx) بدل الـ 401
+        // عشان _handleDioError يعرض رسالة الاتصال ومايرميش المستخدم على اللوجين
+        loggerWarn('Refresh failed temporarily, keeping session');
+        return handler.next(
+          DioException(
+            requestOptions: requestOptions,
+            response: cause.response,
+            type: cause.type,
+            error: cause.error,
+            message: cause.message,
+          ),
+        );
+    }
+  }
+
+  Future<void> _retry(
+    RequestOptions requestOptions,
+    String accessToken,
     ErrorInterceptorHandler handler,
   ) async {
-    final response = err.response;
-    final request = err.requestOptions;
-
-    final shouldRefresh = response?.statusCode == 401 &&
-        !_isPublic(request.path) &&
-        request.extra[_retriedKey] != true &&
-        _session.token?.hasRefreshToken == true;
-
-    if (!shouldRefresh) {
-      return handler.next(err);
-    }
-
-    final refreshed = await _refreshWithLock();
-    if (!refreshed) {
-      return handler.next(err);
-    }
+    // الـ FormData بتتقفل بعد أول إرسال، فلازم نسخة جديدة عشان نعيد الطلب
+    // وإلا تعديل البروفايل بصورة بيفشل لو التوكن كان منتهي
+    final data = requestOptions.data;
+    if (data is FormData) requestOptions.data = data.clone();
 
     try {
-      // إعادة الريكوست الأصلي بالتوكن الجديد.
-      request.extra[_retriedKey] = true;
-      request.headers.addAll(_session.authHeader);
-
-      final retried = await _dio.fetch(request);
-      return handler.resolve(retried);
-    } on DioException catch (e) {
-      return handler.next(e);
-    }
-  }
-
-  /// بيجدّد التوكن مرة واحدة بس لو فيه أكتر من ريكوست بيطلب التجديد.
-  Future<bool> _refreshWithLock() {
-    final inFlight = _refreshCompleter;
-    if (inFlight != null && !inFlight.isCompleted) {
-      loggerInfo('Refresh already in flight — waiting for it');
-      return inFlight.future;
-    }
-
-    final completer = Completer<bool>();
-    _refreshCompleter = completer;
-
-    _refresh().then((result) {
-      if (!completer.isCompleted) completer.complete(result);
-    }).catchError((Object error) {
-      loggerError('Refresh threw: $error');
-      if (!completer.isCompleted) completer.complete(false);
-    }).whenComplete(() {
-      if (identical(_refreshCompleter, completer)) _refreshCompleter = null;
-    });
-
-    return completer.future;
-  }
-
-  Future<bool> _refresh() async {
-    final current = _session.token;
-    final refreshToken = current?.refreshToken;
-
-    if (refreshToken == null || refreshToken.isEmpty) {
-      loggerWarn('No refresh token available');
-      await _expireSession();
-      return false;
-    }
-
-    final deviceId = await HiveServiceImpl.instance.getDeviceId();
-    final deviceInfo = HiveServiceImpl.instance.getDeviceInfo();
-
-    try {
-      loggerInfo('Refreshing access token…');
-
-      // بنستخدم نفس الـ Dio عشان نحتفظ بالـ adapter والـ baseUrl
-      // والإعدادات؛ مسار التجديد موجود في `_publicPaths` فالـ interceptor
-      // ده مش بيحقن توكن ومش بيحاول يجدد لو رجع 401.
-      final response = await _dio.post(
-        Endpoints.refreshToken,
-        data: {
-          'refreshToken': refreshToken,
-          'deviceInfo': deviceInfo,
-          'deviceId': deviceId,
-        },
+      final response = await _retryDio.fetch(
+        requestOptions
+          ..headers['Authorization'] = 'Bearer $accessToken'
+          ..extra[_retriedFlag] = true,
       );
-
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final newToken = UserToken.fromJson(data);
-        if (newToken.isValid) {
-          await _session.update(newToken);
-          loggerInfo('Token refreshed successfully');
-          return true;
-        }
-      }
-
-      loggerWarn('Refresh endpoint returned no access token');
-      await _expireSession();
-      return false;
+      handler.resolve(response);
     } on DioException catch (e) {
-      // 401 من مسار التجديد = الـ refresh token نفسه مات، مفيش إعادة محاولة.
-      loggerError('Token refresh failed (${e.response?.statusCode}): '
-          '${e.response?.data ?? e.message}');
-      await _expireSession();
-      return false;
+      // توكن لسه متجدد واترفض، يبقى الجلسة مش صالحة
+      if (e.response?.statusCode == 401) {
+        loggerWarn('Retried request still unauthorized, session expired');
+        await Session.clear();
+      }
+      handler.next(e);
     }
-  }
-
-  Future<void> _expireSession() async {
-    await _session.clear();
-    _dio.options.headers.remove('Authorization');
-    await onSessionExpired?.call();
   }
 }

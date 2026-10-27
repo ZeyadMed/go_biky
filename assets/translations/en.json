@@ -40,5 +40,16 @@
         "login": "Sign in",
         "forgotPassword": "Forgot your password? Contact the company",
         "accountInfo": "Your account is created by Go Biky.\nTo get your login details, contact your supervisor."
+    },
+    "errors": {
+        "unauthorized": "You are not authorized",
+        "sessionExpired": "Your session has expired, please sign in again",
+        "requestCancelled": "The request was cancelled",
+        "timeout": "The connection timed out, please try again",
+        "connectionFailed": "Couldn't connect to the server",
+        "fileTooLarge": "The file is too large",
+        "openedOnAnotherDevice": "The app was opened on another device",
+        "verificationFailed": "The verification code is incorrect",
+        "invalidAuthResponse": "Couldn't sign you in, please try again"
     }
 }

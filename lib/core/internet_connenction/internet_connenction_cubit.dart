@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:go_biky/core/internet_connenction/internet_connection_state.dart';
 
@@ -25,9 +25,11 @@ class InternetCubit extends Cubit<InternetState> {
     });
   }
 
-  void _emitConnectionState(List<ConnectivityResult> result) {
-    if (result.contains(ConnectivityResult.mobile) ||
-        result.contains(ConnectivityResult.wifi)) {
+  void _emitConnectionState(List<ConnectivityResult> results) {
+    if (results.contains(ConnectivityResult.mobile) ||
+        results.contains(ConnectivityResult.wifi) ||
+        results.contains(ConnectivityResult.ethernet) ||
+        results.contains(ConnectivityResult.vpn)) {
       log('Internet connection is available');
       emit(const InternetOnState());
     } else {

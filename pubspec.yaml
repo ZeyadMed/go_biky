@@ -13,8 +13,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  # ── State management ────────────────────────────────
-  bloc: ^8.1.4
+
+  # ── State management / DI ─────────────────────────
   flutter_bloc: ^8.1.6
   equatable: ^2.0.5
   get_it: ^8.0.2
@@ -22,26 +22,19 @@ dependencies:
   # ── Networking ─────────────────────────────────────
   dio: ^5.7.0
   pretty_dio_logger: ^1.4.0
-  connectivity_plus: ^6.1.4
-  internet_connection_checker_plus: ^2.7.1
+  connectivity_plus: ^7.1.1
 
   # ── Storage ────────────────────────────────────────
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  shared_preferences: ^2.3.3
+  shared_preferences: ^2.5.3
 
   # ── UI / navigation ────────────────────────────────
-  go_router: ^16.1.0
+  go_router: ^15.1.2
   flutter_screenutil: ^5.9.3
-  gap: ^3.0.1
-  pinput: ^6.0.2
+  lottie: ^3.3.1
 
   # ── i18n / utils ───────────────────────────────────
-  easy_localization: ^3.0.8
-  intl: ^0.20.2
+  easy_localization: ^3.0.7
   logger: ^2.5.0
-  uuid: ^4.5.1
-  lottie: ^3.5.1
 
 
 dev_dependencies:

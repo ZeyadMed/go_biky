@@ -1,7 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_biky/core/router/app_router.dart';
-import 'package:go_biky/core/service_locator/service_locator.dart';
-import 'package:go_biky/core/session/session_manager.dart';
 import 'package:go_biky/core/style/assets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -65,13 +63,11 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          SplashCubit(getIt<SessionManager>())..startSplashScreen(),
+      create: (context) => SplashCubit()..startSplashScreen(),
       child: BlocListener<SplashCubit, String>(
         listener: (context, state) {
-          if (state == 'home') {
-            GoRouter.of(context).go(AppRouter.statementScreen);
-          } else if (state == 'login') {
+          // TODO: الـ 'home' يروح على الهوم لما الشاشة تتعمل
+          if (state == 'home' || state == 'login') {
             GoRouter.of(context).go(AppRouter.login);
           }
         },
@@ -118,7 +114,10 @@ class _SplashScreenState extends State<SplashScreen>
                           style: TextStyles.whiteText(
                             14,
                             weight: FontWeight.w400,
-                          ).copyWith(color: Colors.white70, height: 1.6),
+                          ).copyWith(
+                            color: AppColors.whiteTextMuted,
+                            height: 1.6,
+                          ),
                         ),
                         Gaps.v(48.h),
                       ],

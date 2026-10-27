@@ -1,18 +1,16 @@
-import 'package:go_biky/core/session/session_manager.dart';
+import 'package:go_biky/core/http/session.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SplashCubit extends Cubit<String> {
-  final SessionManager _session;
-
-  SplashCubit(this._session) : super('');
+  SplashCubit() : super('');
 
   Future<void> startSplashScreen() async {
     await Future.delayed(const Duration(seconds: 3));
 
     if (isClosed) return;
 
-    // `SessionManager` هو المصدر الوحيد لحالة الدخول — التوكن المنتهي
+    // `Session` هو المصدر الوحيد لحالة الدخول — التوكن المنتهي
     // بيتجدد أوتوماتيك في أول ريكوست، فوجود جلسة محفوظة كفاية.
-    emit(_session.isLoggedIn ? 'home' : 'login');
+    emit(Session.isLoggedIn ? 'home' : 'login');
   }
 }

@@ -162,18 +162,10 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            'splash.appName'.tr(),
-            style: context.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
         Text(
-          'auth.riderSpace'.tr(),
-          style: context.textTheme.labelMedium?.copyWith(
-            color: context.appColors.textSecondary,
+          'splash.appName'.tr(),
+          style: context.textTheme.headlineLarge?.copyWith(
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -187,15 +179,7 @@ class _LogoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 180.h,
-      padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
-      decoration: BoxDecoration(
-        color: context.appColors.bgSecondary,
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Image.asset(Assets.assetsImagesGoBikyLogo, fit: BoxFit.contain),
-    );
+    return Image.asset(Assets.assetsImagesGoBikyLogo, fit: BoxFit.contain);
   }
 }
 

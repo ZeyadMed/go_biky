@@ -40,5 +40,16 @@
         "login": "تسجيل الدخول",
         "forgotPassword": "نسيت كلمة المرور؟ تواصل مع الشركة",
         "accountInfo": "حسابك تنشئه شركة جو بايكي،\nللحصول على بيانات الدخول، تواصل مع المشرف."
+    },
+    "errors": {
+        "unauthorized": "غير مصرح لك",
+        "sessionExpired": "انتهت الجلسة، سجّل دخولك مرة أخرى",
+        "requestCancelled": "تم إلغاء الطلب",
+        "timeout": "انتهت مهلة الاتصال، حاول مرة أخرى",
+        "connectionFailed": "تعذر الاتصال بالخادم",
+        "fileTooLarge": "حجم الملف كبير جدًا",
+        "openedOnAnotherDevice": "تم فتح التطبيق على جهاز آخر",
+        "verificationFailed": "خطأ في التحقق من الكود",
+        "invalidAuthResponse": "تعذر تسجيل الدخول، حاول مرة أخرى"
     }
 }
