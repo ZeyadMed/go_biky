@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
-import 'package:go_biky/core/widgets/widgets.dart';
+import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_biky/feature/home/presentation/view/home_screen.dart';
 import 'package:go_biky/feature/orders/presentation/view/orders_screen.dart';
 import 'package:go_biky/feature/profile/presentation/view/profile_screen.dart';

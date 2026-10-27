@@ -59,10 +59,44 @@
 
 ## 5. Conventions عامة
 - الخط: `Cairo`.
-- المسافات: `Gaps` من `lib/core/widgets/stateless/gaps.dart` (مثلاً `Gaps.v(12.h)`).
+- المسافات: `Gaps` من `lib/core/widget/stateless/gaps.dart` (مثلاً `Gaps.v(12.h)`).
 - الصور والأيقونات: من `lib/core/style/assets.dart`، مش paths مكتوبة يدوي.
 - State management: `flutter_bloc`، الـ DI بـ `get_it` (`lib/core/service_locator/`)، الـ navigation بـ `go_router` (`lib/core/router/`).
 - كل feature جديدة في `lib/feature/<feature_name>/` بنفس تقسيم الـ features الموجودة.
+
+## 6. الـ Custom Widgets (استخدمها قبل ما تبني حاجة من الأول)
+- قبل ما تعمل أي عنصر UI شوف `lib/core/widget/`: لو ليه Custom استخدمه، وممنوع تبني نسخة inline في الشاشة (`TextFormField`، `ElevatedButton`، `Image.network`، `Shimmer`...).
+- الاستيراد من ملف واحد: `import 'package:go_biky/core/widget/widgets.dart';`
+- الـ Custom widgets بتاخد **نص مترجم جاهز** (`title: 'auth.login'.tr()`)، ماتبعتش الـ key.
+- كلهم بياخدوا ألوانهم من `context.appColors` ومقاساتهم بـ screenutil، فماتبعتلهمش ألوان أو أحجام إلا لو الديزاين محتاج غير الافتراضي.
+- لو الـ Custom ناقصه حاجة، زوّد فيه parameter اختياري (من غير ما تكسر الاستخدامات الموجودة) بدل ما تعمل widget تاني في الشاشة.
+- أي widget هيتكرر في أكتر من شاشة يتعمل في `lib/core/widget/`، ويتضاف في `widgets.dart` وفي الجدول ده.
+
+| عايز | استخدم |
+|---|---|
+| زرار | `CustomButton` (`outlined: true` للثانوي، `isLoading` وقت الطلب، `onPressed: null` = متعطل) |
+| حقل نص / باسورد / تاريخ | `CustomTextField` (`labelText` فوقه، `obscureText` بيعمل زرار العين لوحده، `onDateSelected` بيفتح date picker) |
+| رقم موبايل | `CustomPhoneField` |
+| قايمة اختيار | `CustomDropDown<T>` (بيشتغل جوه `Form` بـ `validator`) |
+| حقل بيفتح ويقفل (كود خصم...) | `ExpandableTextField` |
+| حقل مخصوص مش موجود | `AppInputDecoration.of(context, ...)` للشكل + `LabeledField` للعنوان |
+| بحث | `CustomSearchWidget` |
+| راديو | `CustomRadioButton<T>` لمجموعة `value`/`groupValue`، و`DefaultRadioButton` / `BorderRadioButton` لصف اختيار بعنوان وأيقونة |
+| صف في قايمة (الحساب / الإعدادات) | `CustomListTile` (`trailing` مكان السهم، زي `Switch`) |
+| تغيير اللغة | `ChangeLanguageWidget` |
+| عنوان قسم + "عرض الكل" | `RowWidget` |
+| فاصل "أو" | `DividerWidget` |
+| تابات | `CustomTabBarView` |
+| سلايدر / بانرات | `CarouselSliderWidget`، والنقط لوحدها `CustomPageIndicator` |
+| أي صورة (لينك / asset / ملف / bytes) | `FlexibleImage` |
+| اختيار صورة | `FilePickerWidget` (كارت جاهز) أو `ImagePickerHelper.showImagePicker` (`lib/core/helpers/`) |
+| حالة تحميل | `ListShimmer` / `GridShimmer` / `DetailsShimmer` / `ShimmerSkeleton`، ولـ skeleton مخصوص `AppShimmer` + `ShimmerBox`، ولعنصر واحد `CustomShimmerWidget` |
+| حالة خطأ | `FailureWidget` (مع `onRefresh` بيبقى فيه سحب للتحديث وزرار إعادة المحاولة) |
+| قفل الكيبورد لما تدوس بره | `DismissKeyboardWrapper` |
+| مسافات | `Gaps.v` / `Gaps.h` |
+| المحتوى على التابلت | `ResponsiveCenter` / `ResponsiveLayout` |
+| رسالة خطأ / نجاح | `context.showErrorMessage` / `context.showSuccessMessage` |
+| loading dialog | `context.showLoadingDialog()` |
 
 ## قواعد للتعامل معايا
 - قبل ما تضيف package جديدة، اسألني الأول

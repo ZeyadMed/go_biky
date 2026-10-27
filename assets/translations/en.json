@@ -9,7 +9,15 @@
         "loading": "Loading...",
         "noInternet": "No internet connection",
         "somethingWentWrong": "Something went wrong, please try again",
-        "tapAgainToExit": "Tap again to exit"
+        "tapAgainToExit": "Tap again to exit",
+        "search": "Search",
+        "seeAll": "See all",
+        "or": "or",
+        "chooseImage": "Choose an image",
+        "camera": "Camera",
+        "gallery": "Gallery",
+        "phoneHint": "9XXXXXXXX",
+        "invalidPhoneNumber": "Invalid phone number"
     },
     "settings": {
         "title": "Settings",

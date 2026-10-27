@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/style/assets.dart';
-import 'package:go_biky/core/widgets/widgets.dart';
+import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {

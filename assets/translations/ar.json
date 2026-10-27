@@ -9,7 +9,15 @@
         "loading": "جاري التحميل...",
         "noInternet": "لا يوجد اتصال بالإنترنت",
         "somethingWentWrong": "حدث خطأ ما، حاول مرة أخرى",
-        "tapAgainToExit": "اضغط مرة أخرى للخروج"
+        "tapAgainToExit": "اضغط مرة أخرى للخروج",
+        "search": "بحث",
+        "seeAll": "عرض الكل",
+        "or": "أو",
+        "chooseImage": "اختر صورة",
+        "camera": "الكاميرا",
+        "gallery": "المعرض",
+        "phoneHint": "9XXXXXXXX",
+        "invalidPhoneNumber": "رقم الهاتف غير صحيح"
     },
     "settings": {
         "title": "الإعدادات",

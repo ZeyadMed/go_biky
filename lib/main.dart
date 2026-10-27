@@ -12,7 +12,7 @@ import 'package:go_biky/core/service_locator/service_locator.dart';
 import 'package:go_biky/core/style/assets.dart';
 import 'package:go_biky/core/theme/theme.dart';
 import 'package:go_biky/core/theme/theme_mode_controller.dart';
-import 'package:go_biky/core/widgets/widgets.dart';
+import 'package:go_biky/core/widget/widgets.dart';
 import 'package:lottie/lottie.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =

@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/theme/app_theme_colors.dart';
-import 'package:go_biky/core/widgets/stateless/gaps.dart';
+import 'package:go_biky/core/widget/stateless/gaps.dart';
 
 /// حدود الأجهزة بالـ logical pixels
 abstract final class Breakpoints {

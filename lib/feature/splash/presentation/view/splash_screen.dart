@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/theme/app_colors.dart';
 import 'package:go_biky/core/theme/text_styles.dart';
-import 'package:go_biky/core/widgets/widgets.dart';
+import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../view_model/cubit/splash_cubit.dart';

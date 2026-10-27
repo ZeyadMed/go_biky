@@ -31,11 +31,17 @@ dependencies:
   go_router: ^15.1.2
   flutter_screenutil: ^5.9.3
   lottie: ^3.3.1
+  shimmer: ^4.0.0
+  flutter_svg: ^2.3.0
+  cached_network_image: ^4.0.5
+  intl_phone_field: ^3.2.0
+
+  # ── Media ──────────────────────────────────────────
+  image_picker: ^1.2.4
 
   # ── i18n / utils ───────────────────────────────────
   easy_localization: ^3.0.7
   logger: ^2.5.0
-
 
 dev_dependencies:
   flutter_test:
