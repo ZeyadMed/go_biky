@@ -43,8 +43,17 @@ abstract final class ImagePickerHelper {
         ),
       ),
     );
-    if (source == null) return;
+    if (source == null || !context.mounted) return;
+    await pickFrom(context, source, onPicked);
+  }
 
+  /// بيفتح الكاميرا أو المعرض على طول من غير الـ bottom sheet، لو الشاشة
+  /// فيها زرار لكل واحد
+  static Future<void> pickFrom(
+    BuildContext context,
+    ImageSource source,
+    ValueChanged<File> onPicked,
+  ) async {
     try {
       final image = await pickImage(source);
       if (image != null) onPicked(image);

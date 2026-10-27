@@ -39,6 +39,8 @@ Future<void> main() async {
       startLocale: const Locale('ar'),
       saveLocale: true,
       useOnlyLangCode: true,
+      // من غيرها الجمع بيعرف 0/1/2 بس، والعربي محتاج few (٣-١٠) و many (١١-٩٩)
+      ignorePluralRules: false,
       child: const MyApp(),
     ),
   );

@@ -84,7 +84,10 @@
 | راديو | `CustomRadioButton<T>` لمجموعة `value`/`groupValue`، و`DefaultRadioButton` / `BorderRadioButton` لصف اختيار بعنوان وأيقونة |
 | صف في قايمة (الحساب / الإعدادات) | `CustomListTile` (`trailing` مكان السهم، زي `Switch`) |
 | تغيير اللغة | `ChangeLanguageWidget` |
-| عنوان قسم + "عرض الكل" | `RowWidget` |
+| هيدر الشاشة (رجوع + عنوان) | `CustomBackHeader` (`subtitle` تحت العنوان، `trailing` في آخر الصف زي زرار فلتر) |
+| عنوان قسم + "عرض الكل" | `RowWidget` (`trailing` مكان "عرض الكل" زي عدد العناصر) |
+| شارة حالة صغيرة (بانتظار الموافقة، تم الاعتماد...) | `CustomBadge` (من غير ألوان بتبقى `primary`/`primaryContainer`، ولحالة ابعت لونها والـ `...Container` بتاعه) |
+| كارت صفوف عنوان وقيمة (تفاصيل طلب...) | `CustomDetailsCard` (`rows: [(label: ..., value: ...)]`) |
 | فاصل "أو" | `DividerWidget` |
 | تابات | `CustomTabBarView` |
 | سلايدر / بانرات | `CarouselSliderWidget`، والنقط لوحدها `CustomPageIndicator` |

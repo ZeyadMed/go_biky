@@ -8,7 +8,15 @@ class RowWidget extends StatelessWidget {
   final String title;
   final VoidCallback? onSeeAllTap;
 
-  const RowWidget({super.key, required this.title, this.onSeeAllTap});
+  /// بيظهر مكان "عرض الكل" (زي عدد العناصر)
+  final Widget? trailing;
+
+  const RowWidget({
+    super.key,
+    required this.title,
+    this.onSeeAllTap,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +32,9 @@ class RowWidget extends StatelessWidget {
             style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
-        if (onSeeAllTap != null)
+        if (trailing != null)
+          trailing!
+        else if (onSeeAllTap != null)
           TextButton(
             onPressed: onSeeAllTap,
             style: TextButton.styleFrom(

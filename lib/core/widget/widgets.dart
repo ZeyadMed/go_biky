@@ -1,7 +1,10 @@
 export 'app_input_decoration.dart';
 export 'carousel_slider_widget.dart';
 export 'change_language_widget.dart';
+export 'custom_back_header.dart';
+export 'custom_badge.dart';
 export 'custom_button.dart';
+export 'custom_details_card.dart';
 export 'custom_drop_down.dart';
 export 'custom_list_tile.dart';
 export 'custom_page_indecator.dart';

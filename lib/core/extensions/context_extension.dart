@@ -57,6 +57,31 @@ extension ContextExtensions on BuildContext {
   Future<void> toggleLanguage() =>
       setLocale(isArabic ? const Locale('en') : const Locale('ar'));
 
+  /// الأرقام في الديزاين عربي (٣٢)، و`intl` بيرجّع أرقام إنجليزي لـ `ar`
+  /// فبنستخدم `ar_EG`
+  String get _formatLocale => isArabic ? 'ar_EG' : 'en';
+
+  /// رقم بفواصل الآلاف (١٢٬٤٨٢)، و`grouped: false` للأرقام اللي مالهاش
+  /// فواصل زي رقم الطلب
+  String formatNumber(num value, {bool grouped = true}) =>
+      (grouped
+              ? NumberFormat.decimalPattern(_formatLocale)
+              : NumberFormat('0', _formatLocale))
+          .format(value);
+
+  /// تاريخ بالشكل "٢٥ أكتوبر ٢٠٢٦"
+  String formatDate(DateTime date) =>
+      DateFormat('d MMMM y', _formatLocale).format(date);
+
+  /// شهر وسنة بالشكل "أكتوبر ٢٠٢٦"
+  String formatMonthYear(DateTime date) =>
+      DateFormat('MMMM y', _formatLocale).format(date);
+
+  /// وقت بالشكل "١٠:٣٠ صباحاً"، و`intl` بيكتبها "ص" بس فبنترجمها إحنا
+  String formatTime(DateTime time) =>
+      '${DateFormat('h:mm', _formatLocale).format(time)} '
+      '${(time.hour < 12 ? 'common.am' : 'common.pm').tr()}';
+
   // ─── Keyboard ─────────────────────────────────────
   bool get isKeyboardVisible => MediaQuery.viewInsetsOf(this).bottom != 0;
 
