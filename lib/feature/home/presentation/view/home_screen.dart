@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                 Gaps.v(24.h),
                 RowWidget(title: 'home.everythingForTheRoad'.tr()),
                 Gaps.v(12.h),
-                const _QuickLinks(),
+                const _OilLogLink(),
               ],
             ),
           ),
@@ -511,123 +511,24 @@ class _OilRing extends StatelessWidget {
   }
 }
 
-class _QuickLink {
-  const _QuickLink(
-    this.labelKey,
-    this.icon, {
-    required this.image,
-    this.route,
-    this.tab,
-  });
-
-  final String labelKey;
-
-  /// بتظهر مكان الصورة لو `image` بـ null
-  final IconData icon;
-  final String? image;
-
-  /// الشاشة اللي الكارت بيفتحها
-  final String? route;
-
-  /// أو التاب اللي بيفتحه لو الشاشة تاب في البار
-  final BottomNavTab? tab;
-}
-
-// TODO: صور الكروت لسه مش في الـ assets
-const _quickLinks = [
-  _QuickLink(
-    'home.maintenanceAndParts',
-    Icons.build_outlined,
-    image: null,
-    tab: BottomNavTab.spareParts,
-  ),
-  _QuickLink(
-    'bottomNav.orders',
-    Icons.assignment_outlined,
-    image: null,
-    tab: BottomNavTab.orders,
-  ),
-  _QuickLink(
-    'home.oilLog',
-    Icons.oil_barrel_outlined,
-    image: null,
-    route: AppRouter.oilLog,
-  ),
-];
-
-class _QuickLinks extends StatelessWidget {
-  const _QuickLinks();
+/// صف واحد بيفتح تاب سجل الزيت
+class _OilLogLink extends StatelessWidget {
+  const _OilLogLink();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < _quickLinks.length; i++) ...[
-          if (i > 0) Gaps.h(10.w),
-          Expanded(child: _QuickLinkCard(link: _quickLinks[i])),
-        ],
-      ],
-    );
-  }
-}
-
-class _QuickLinkCard extends StatelessWidget {
-  const _QuickLinkCard({required this.link});
-
-  final _QuickLink link;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-
-    return Material(
-      color: colors.bgSecondary,
+    return Container(
       clipBehavior: Clip.antiAlias,
-      borderRadius: BorderRadius.circular(16.r),
-      child: InkWell(
-        onTap: () {
-          if (link.tab case final tab?) {
-            BottomNavApp.openTab(context, tab);
-          } else if (link.route case final route?) {
-            context.push(route);
-          }
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: FlexibleImage(
-                source: link.image,
-                placeholder: ColoredBox(
-                  color: colors.bgTertiary,
-                  child: Center(
-                    child: Icon(
-                      link.icon,
-                      color: colors.textSecondary,
-                      size: 28.r,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
-              // على الموبايل الصغير النص بيصغر بدل ما يتقص
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  link.labelKey.tr(),
-                  maxLines: 1,
-                  style: context.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: context.appColors.bgSecondary,
+        borderRadius: BorderRadius.circular(24.r),
+      ),
+      child: CustomListTile(
+        text: 'home.oilLog'.tr(),
+        icon: Icons.oil_barrel_outlined,
+        showDivider: false,
+        onTap: () => BottomNavApp.openTab(context, BottomNavTab.oilLog),
       ),
     );
   }

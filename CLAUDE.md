@@ -81,7 +81,6 @@
 | حقل بيفتح ويقفل (كود خصم...) | `ExpandableTextField` |
 | حقل مخصوص مش موجود | `AppInputDecoration.of(context, ...)` للشكل + `LabeledField` للعنوان |
 | بحث | `CustomSearchWidget` (`filled: true` لخانة بخلفية بدل الخط اللي تحت) |
-| عداد كمية (+ و −) | `CustomQuantityStepper` (`style`: `plain` زي تفاصيل القطعة، `boxed` زي سلة الطلب، `filled` شريط بعرض المكان زي كارت القطعة) |
 | راديو | `CustomRadioButton<T>` لمجموعة `value`/`groupValue`، و`DefaultRadioButton` / `BorderRadioButton` لصف اختيار بعنوان وأيقونة |
 | صف في قايمة (الحساب / الإعدادات) | `CustomListTile` (`trailing` مكان السهم، زي `Switch`) |
 | تغيير اللغة | `ChangeLanguageWidget` |

@@ -15,14 +15,6 @@ List<AppNotification> _tempNotifications() {
       createdAt: now.subtract(const Duration(minutes: 5)),
     ),
     AppNotification(
-      id: 4,
-      type: NotificationType.order,
-      title: 'طلب #٢٠٣٦ جاهز للاستلام',
-      body: 'الإطار الخلفي متاح في مركز الياسمين. ننتظرك خلال ساعات العمل.',
-      createdAt: now.subtract(const Duration(hours: 1)),
-      orderId: 2036,
-    ),
-    AppNotification(
       id: 3,
       type: NotificationType.oilProof,
       title: 'إثبات الزيت قيد المراجعة',
@@ -36,15 +28,6 @@ List<AppNotification> _tempNotifications() {
       body: 'اعتُمد تغيير ٢٤ أكتوبر عند ١٢٬٤٥٠ كم وبدأت دورة زيت جديدة.',
       createdAt: DateTime(now.year, now.month, now.day - 1, 8, 45),
       isRead: true,
-    ),
-    AppNotification(
-      id: 1,
-      type: NotificationType.order,
-      title: 'تحديث طلبك #٢٠١٩',
-      body: 'طقم السلسلة والتروس قيد المراجعة. سنبلغك عند التوفر.',
-      createdAt: DateTime(now.year, now.month, now.day - 3, 15, 20),
-      isRead: true,
-      orderId: 2019,
     ),
   ];
 }

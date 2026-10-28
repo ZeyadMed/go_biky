@@ -11,7 +11,6 @@ export 'custom_drop_down.dart';
 export 'custom_list_tile.dart';
 export 'custom_page_indecator.dart';
 export 'custom_phone_field.dart';
-export 'custom_quantity_stepper.dart';
 export 'custom_radio_bottun.dart';
 export 'custom_search_widget.dart';
 export 'custom_shimmer_widget.dart';

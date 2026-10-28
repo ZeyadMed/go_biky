@@ -78,10 +78,6 @@ extension ContextExtensions on BuildContext {
         )
       : text;
 
-  /// سعر بالريال بالشكل "٤٥ ر.س"
-  String formatPrice(num price) =>
-      'common.price'.tr(args: [formatNumber(price)]);
-
   /// تاريخ بالشكل "٢٥ أكتوبر ٢٠٢٦"
   String formatDate(DateTime date) =>
       DateFormat('d MMMM y', _formatLocale).format(date);

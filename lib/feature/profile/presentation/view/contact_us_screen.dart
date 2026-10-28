@@ -16,12 +16,9 @@ const _centerName = 'مركز مدار • الياسمين';
 const _centerAddress = 'طريق أنس بن مالك، حي الياسمين، الرياض';
 const String? _centerMapImage = null;
 
-/// تواصل معنا: طرق التواصل ومكان المركز، ورسالة للدعم. `subject` بيتملي
-/// لو الشاشة اتفتحت من طلب معين
+/// تواصل معنا: طرق التواصل ومكان المركز، ورسالة للدعم
 class ContactUsScreen extends StatefulWidget {
-  const ContactUsScreen({super.key, this.subject});
-
-  final String? subject;
+  const ContactUsScreen({super.key});
 
   @override
   State<ContactUsScreen> createState() => _ContactUsScreenState();
@@ -29,7 +26,7 @@ class ContactUsScreen extends StatefulWidget {
 
 class _ContactUsScreenState extends State<ContactUsScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final _subjectController = TextEditingController(text: widget.subject);
+  final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
 
   @override

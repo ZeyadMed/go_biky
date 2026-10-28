@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
-import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/router/bottom_nav_app.dart';
 import 'package:go_biky/core/service_locator/service_locator.dart';
 import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_biky/feature/notifications/app_notification.dart';
 import 'package:go_biky/feature/notifications/presentation/view_model/cubit/notifications_cubit.dart';
-import 'package:go_biky/feature/orders/presentation/view_model/cubit/orders_cubit.dart';
-import 'package:go_router/go_router.dart';
 
 enum _DayGroup {
   today('notifications.today'),
@@ -199,12 +196,7 @@ class _NotificationCard extends StatelessWidget {
       case NotificationType.oilDue:
         BottomNavApp.openTab(context, BottomNavTab.home);
       case NotificationType.oilProof:
-        context.push(AppRouter.oilLog);
-      case NotificationType.order:
-        final order = getIt<OrdersCubit>().state
-            .where((order) => order.id == notification.orderId)
-            .firstOrNull;
-        if (order != null) context.push(AppRouter.orderDetails, extra: order);
+        BottomNavApp.openTab(context, BottomNavTab.oilLog);
     }
   }
 

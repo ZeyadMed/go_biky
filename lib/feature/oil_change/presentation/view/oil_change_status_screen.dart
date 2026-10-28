@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
 import 'package:go_biky/core/router/app_router.dart';
+import 'package:go_biky/core/router/bottom_nav_app.dart';
 import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_biky/feature/oil_change/oil_change_proof.dart';
 import 'package:go_biky/feature/oil_change/presentation/widgets/oil_change_widgets.dart';
@@ -28,7 +29,7 @@ class OilChangeStatusScreen extends StatelessWidget {
         body: _PendingView(proof: proof),
         button: CustomButton(
           title: 'oilChange.viewOilLog'.tr(),
-          onPressed: () => context.push(AppRouter.oilLog),
+          onPressed: () => BottomNavApp.openTab(context, BottomNavTab.oilLog),
           backgroundColor: context.appColors.secondary,
           textColor: context.colorScheme.onSecondary,
         ),

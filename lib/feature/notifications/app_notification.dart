@@ -6,10 +6,7 @@ enum NotificationType {
   oilDue(Icons.oil_barrel_outlined),
 
   /// تحديث في إثبات تغيير الزيت
-  oilProof(Icons.fact_check_outlined),
-
-  /// تحديث في طلب قطع
-  order(Icons.inventory_2_outlined);
+  oilProof(Icons.fact_check_outlined);
 
   const NotificationType(this.icon);
 
@@ -25,7 +22,6 @@ class AppNotification {
     required this.createdAt,
     this.isRead = false,
     this.image,
-    this.orderId,
   });
 
   final int id;
@@ -38,9 +34,6 @@ class AppNotification {
   final bool isRead;
   final String? image;
 
-  /// رقم الطلب لو الإشعار عن طلب قطع
-  final int? orderId;
-
   AppNotification asRead() => AppNotification(
     id: id,
     type: type,
@@ -49,6 +42,5 @@ class AppNotification {
     createdAt: createdAt,
     isRead: true,
     image: image,
-    orderId: orderId,
   );
 }

@@ -347,7 +347,7 @@ class _SettingsCard extends StatelessWidget {
 class _MenuCard extends StatelessWidget {
   const _MenuCard();
 
-  /// بيمسح الجلسة وكل الـ singletons (السلة والطلبات والإشعارات) عشان اللي
+  /// بيمسح الجلسة وكل الـ singletons (زي الإشعارات) عشان اللي
   /// يدخل بعده مايلاقيش حاجة من الحساب القديم
   Future<void> _logout(BuildContext context) async {
     final colors = context.appColors;

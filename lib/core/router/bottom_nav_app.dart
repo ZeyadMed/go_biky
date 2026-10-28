@@ -6,12 +6,11 @@ import 'package:go_biky/core/extensions/extensions.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_biky/feature/home/presentation/view/home_screen.dart';
-import 'package:go_biky/feature/orders/presentation/view/orders_screen.dart';
+import 'package:go_biky/feature/oil_change/presentation/view/oil_log_screen.dart';
 import 'package:go_biky/feature/profile/presentation/view/profile_screen.dart';
-import 'package:go_biky/feature/spare_parts/presentation/view/spare_parts_screen.dart';
 
 /// التابات بنفس ترتيبها في البار
-enum BottomNavTab { home, spareParts, orders, profile }
+enum BottomNavTab { home, oilLog, profile }
 
 /// الشاشة اللي شايلة التابات الأساسية، والتنقل بينهم بيتم هنا.
 /// الصفحات جوه `IndexedStack` فكل تاب بيحتفظ بالـ state بتاعه
@@ -19,8 +18,8 @@ enum BottomNavTab { home, spareParts, orders, profile }
 class BottomNavApp extends StatefulWidget {
   const BottomNavApp({super.key});
 
-  /// بيرجع للتابات من أي شاشة فوقها ويفتح `tab`، زي "عرض تفاصيل الطلب"
-  /// اللي بيفتح طلباتي. بيرجع بـ pop مش go عشان التابات تحتفظ بالـ state
+  /// بيرجع للتابات من أي شاشة فوقها ويفتح `tab`، زي "عرض سجل الزيت"
+  /// اللي بيفتح تاب السجل. بيرجع بـ pop مش go عشان التابات تحتفظ بالـ state
   /// بتاعها
   static void openTab(BuildContext context, BottomNavTab tab) {
     _tabRequest.value = tab;
@@ -131,12 +130,7 @@ class _NavItem {
 /// بنفس ترتيب `BottomNavTab`، وأول واحد هو اللي بيفتح الأول
 const _items = [
   _NavItem(Icons.home_outlined, 'bottomNav.home', HomeScreen()),
-  _NavItem(
-    Icons.shopping_bag_outlined,
-    'bottomNav.spareParts',
-    SparePartsScreen(),
-  ),
-  _NavItem(Icons.assignment_outlined, 'bottomNav.orders', OrdersScreen()),
+  _NavItem(Icons.oil_barrel_outlined, 'bottomNav.oilLog', OilLogScreen()),
   _NavItem(Icons.person_outline_rounded, 'bottomNav.profile', ProfileScreen()),
 ];
 

@@ -20,10 +20,7 @@
         "phoneHint": "9XXXXXXXX",
         "invalidPhoneNumber": "Invalid phone number",
         "am": "AM",
-        "pm": "PM",
-        "price": "{} SAR",
-        "increase": "Increase",
-        "decrease": "Decrease"
+        "pm": "PM"
     },
     "settings": {
         "title": "Settings",
@@ -57,8 +54,7 @@
     },
     "bottomNav": {
         "home": "Home",
-        "spareParts": "Spare parts",
-        "orders": "My orders",
+        "oilLog": "Oil log",
         "profile": "Account"
     },
     "home": {
@@ -79,7 +75,6 @@
         "sinceLastChange": "Since last approved change",
         "changeOilNow": "Change oil now",
         "everythingForTheRoad": "Everything you need for the road",
-        "maintenanceAndParts": "Maintenance & parts",
         "oilLog": "Oil log"
     },
     "oilChange": {
@@ -155,114 +150,6 @@
         "resubmitted": "Resubmitted",
         "footnote": "Readings here are the bike's total odometer,\nand don't change when the oil cycle counter resets."
     },
-    "spareParts": {
-        "title": "Maintenance & spare parts",
-        "cart": "Order cart",
-        "searchHint": "Search for the part you need",
-        "all": "All",
-        "oils": "Oils",
-        "brakes": "Brakes",
-        "tires": "Tires",
-        "chains": "Chains",
-        "filters": "Filters",
-        "lighting": "Lighting",
-        "batteries": "Batteries",
-        "pickedForYourBike": "Picked for your bike",
-        "productsCount": {
-            "zero": "No products",
-            "one": "{} product",
-            "two": "{} products",
-            "few": "{} products",
-            "many": "{} products",
-            "other": "{} products"
-        },
-        "available": "In stock",
-        "limited": "Limited stock",
-        "outOfStock": "Out of stock",
-        "inWarehouse": "In stock at the warehouse",
-        "currentlyUnavailable": "Currently unavailable",
-        "addToOrder": "Add to order",
-        "noResults": "No parts match your search",
-        "detailsTitle": "Part details",
-        "compatibleWith": "Fits your bike: {}",
-        "quantity": "Quantity",
-        "priceNote": "Price includes VAT. Your supervisor checks availability\nbefore confirming pickup from the service center.",
-        "addToOrderWithPrice": "Add to order • {}",
-        "updateOrderWithPrice": "Update order • {}",
-        "addedToOrder": "Part added to your order",
-        "orderUpdated": "Quantity updated in your order"
-    },
-    "partsOrder": {
-        "title": "Spare parts order",
-        "partsCount": {
-            "zero": "No parts",
-            "one": "{} part",
-            "two": "{} parts",
-            "few": "{} parts",
-            "many": "{} parts",
-            "other": "{} parts"
-        },
-        "unitsCount": {
-            "zero": "No units",
-            "one": "{} unit",
-            "two": "{} units",
-            "few": "{} units",
-            "many": "{} units",
-            "other": "{} units"
-        },
-        "forYourBike": "For your bike: {}",
-        "unitPrice": "Unit price",
-        "remove": "Remove from order",
-        "notesLabel": "Order notes (optional)",
-        "notesHint": "I'd prefer pickup from the Al Yasmin center.",
-        "itemLine": "{} × {}",
-        "total": "Total",
-        "vatNote": "Prices include 15% VAT.",
-        "disclaimer": "This is a supply request for review, not a payment.\nWe'll let you know the pickup time once it's approved.",
-        "submitWithTotal": "Send order • {}",
-        "emptyTitle": "Your order is empty",
-        "emptySubtitle": "Add the parts you need from maintenance & spare parts.",
-        "browseParts": "Browse parts",
-        "sentTitle": "Order sent",
-        "received": "We got your order, {}",
-        "receivedSubtitle": "The {} team will review the requested parts,\nand we'll let you know as soon as they're ready for pickup.",
-        "sentBadge": "Sent • #{}",
-        "orderDate": "Order date",
-        "dateTime": "{}, {}",
-        "requestedParts": "Requested parts",
-        "totalWithVat": "Total incl. VAT",
-        "pickupCenter": "Pickup center",
-        "nextStepTitle": "What's next?",
-        "nextStepBody": "Review takes one business day. Don't head to the center until the status shows “Ready for pickup”.",
-        "viewDetails": "View order details"
-    },
-    "orders": {
-        "title": "My orders",
-        "subtitle": "Track your parts from order to pickup",
-        "filter": "Filter",
-        "all": "All",
-        "active": "Active",
-        "completed": "Completed",
-        "orderNumber": "Order #{}",
-        "statusSent": "Sent",
-        "statusUnderReview": "In review",
-        "statusReady": "Ready for pickup",
-        "statusDelivered": "Delivered",
-        "empty": "No orders here"
-    },
-    "orderDetails": {
-        "title": "Order details",
-        "createdAt": "Created on",
-        "journey": "Your order's journey",
-        "stepDate": "{} • {}",
-        "sentHint": "We received your order",
-        "underReviewHint": "We're checking the parts' availability",
-        "readyHint": "We'll notify you when the parts are ready",
-        "deliveredHint": "Confirmed when you pick up from the center",
-        "unitLine": "{} × {}",
-        "yourNote": "Your note: {}",
-        "contact": "Contact us about this order"
-    },
     "notifications": {
         "title": "Notifications",
         "markAllRead": "Mark all as read",
@@ -314,9 +201,9 @@
         "footerCompany": "{} bike rental services",
         "version": "Version {} • Made for your ride",
         "logoutTitle": "Logging out?",
-        "logoutMessage": "You'll need your username and password to sign in again. Your bike details, orders and oil log stay saved.",
+        "logoutMessage": "You'll need your username and password to sign in again. Your bike details and oil log stay saved.",
         "deleteTitle": "Request account deletion?",
-        "deleteMessage": "We'll send your deletion request to Madar's management for approval. Your account stays active until it's approved, and open orders won't be cancelled automatically. Once approved, sign-in is closed and your data is deleted, except records we're legally required to keep.",
+        "deleteMessage": "We'll send your deletion request to Madar's management for approval. Your account stays active until it's approved. Once approved, sign-in is closed and your data is deleted, except records we're legally required to keep.",
         "deleteConfirm": "Confirm deletion request",
         "deleteRequested": "Your deletion request was sent. We'll let you know once it's reviewed."
     },
@@ -328,13 +215,12 @@
         "email": "Email: {}",
         "copied": "Copied: {}",
         "subjectLabel": "Subject",
-        "subjectHint": "A maintenance question or a parts order",
+        "subjectHint": "A question about your bike or an oil change",
         "messageLabel": "Your message",
         "messageHint": "How can we help?",
         "messageRequired": "Write your message first",
         "send": "Send message",
-        "sent": "We got your message and will reply during working hours.",
-        "orderSubject": "About order #{}"
+        "sent": "We got your message and will reply during working hours."
     },
     "policy": {
         "lastUpdated": "Last updated: {}",

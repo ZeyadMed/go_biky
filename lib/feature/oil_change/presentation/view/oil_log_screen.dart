@@ -59,6 +59,7 @@ class OilLogScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             Padding(
@@ -82,7 +83,14 @@ class OilLogScreen extends StatelessWidget {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 24.h),
+                // الـ padding اللي تحت فيه ارتفاع الـ bottom nav، فآخر
+                // المحتوى مايستخباش وراه
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  24.w,
+                  16.h,
+                  24.w,
+                  MediaQuery.paddingOf(context).bottom + 24.h,
+                ),
                 child: ResponsiveCenter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
