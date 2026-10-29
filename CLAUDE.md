@@ -95,13 +95,65 @@
 | أي صورة (لينك / asset / ملف / bytes) | `FlexibleImage` |
 | اختيار صورة | `FilePickerWidget` (كارت جاهز) أو `ImagePickerHelper.showImagePicker` (`lib/core/helpers/`) |
 | حالة تحميل | `ListShimmer` / `GridShimmer` / `DetailsShimmer` / `ShimmerSkeleton`، ولـ skeleton مخصوص `AppShimmer` + `ShimmerBox`، ولعنصر واحد `CustomShimmerWidget` |
-| حالة خطأ | `FailureWidget` (مع `onRefresh` بيبقى فيه سحب للتحديث وزرار إعادة المحاولة) |
+| حالة خطأ | `FailureWidget` (مع `onRefresh` بيبقى فيه سحب للتحديث وزرار إعادة المحاولة، و`compact: true` لسطر في كارت مكان عنصر واحد فشل) |
 | قفل الكيبورد لما تدوس بره | `DismissKeyboardWrapper` |
 | مسافات | `Gaps.v` / `Gaps.h` |
 | المحتوى على التابلت | `ResponsiveCenter` / `ResponsiveLayout` |
 | رسالة خطأ / نجاح | `context.showErrorMessage` / `context.showSuccessMessage` |
 | loading dialog | `context.showLoadingDialog()` |
 | dialog تأكيد (خروج، حذف...) | `CustomConfirmDialog.show(...)` بترجع `true` لو أكّد (للإجراء الخطير ابعت ألوان `error`) |
+
+
+## هيكلة المشروع (إلزامية)
+
+كل feature جديدة لازم تمشي على الهيكل ده بالظبط (login مثال):
+
+lib/
+├── core/
+│   ├── api/
+│   │   └── api_consumer.dart
+│   ├── data_source/
+│   │   └── generic_data_source.dart
+│   └── state/
+│       └── base_state.dart
+└── feature/
+    └── login/
+        ├── data/
+        │   ├── model/
+        │   └── datasource/
+        └── presentation/
+            ├── view/
+            │   ├── screens/
+            │   └── widgets/
+            └── view_model/
+                └── cubit/
+
+### قواعد الهيكلة
+- أي feature جديدة تتعمل في lib/features/<feature_name>/ بنفس الفولدرات دي
+- ممنوع إضافة فولدرات تانية (زي domain أو repository) من غير ما تسألني
+- الـ widgets الخاصة بشاشة واحدة تتحط في widgets/ بتاعة الـ feature دي
+- الـ widgets المشتركة بين أكتر من feature تتحط في lib/core/widgets/
+
+## استخدام الـ Core (إلزامي)
+
+قبل ما تكتب أي datasource أو cubit، اقرا الملفات دي الأول وافهمها:
+- lib/core/api/api_consumer.dart
+- lib/core/data_source/generic_data_source.dart
+- lib/core/state/base_state.dart
+
+### الـ Data Source
+- أي datasource جديد لازم يستخدم الـ GenericDataSource الموجود في core
+- ممنوع تعمل datasource من الصفر أو تكرر لوجيك موجود في الـ generic
+- كل الـ API calls تعدّي من ApiConsumer، ممنوع تستخدم Dio أو http مباشرة
+
+### الـ Cubit و الـ State
+- أي cubit لازم يستخدم الـ BaseState الموجود في core
+- ممنوع تعمل state classes جديدة لحالات loading و error و success، استخدم اللي في BaseState
+- لو احتجت state مختلفة فعلاً ومش موجودة في BaseState، اسألني الأول قبل ما تضيفها
+
+### لو الـ Core مش كفاية
+- لو لقيت إن الـ generic classes مش بتغطي حالة معينة، ماتعدّلش فيهم من نفسك
+- قولي إيه المشكلة واقترح التعديل، وأنا اللي أقرر
 
 ## قواعد للتعامل معايا
 - قبل ما تضيف package جديدة، اسألني الأول

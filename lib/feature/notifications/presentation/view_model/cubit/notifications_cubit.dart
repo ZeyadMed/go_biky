@@ -1,55 +1,88 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_biky/feature/notifications/app_notification.dart';
+import 'package:go_biky/core/bloc/genaric_pagination.dart';
+import 'package:go_biky/core/http/either.dart';
+import 'package:go_biky/core/http/failure.dart';
+import 'package:go_biky/feature/notifications/data/datasource/notifications_data_source.dart';
+import 'package:go_biky/feature/notifications/data/model/notification_model.dart';
+import 'package:go_biky/feature/notifications/data/model/notifications_page.dart';
+import 'package:go_biky/feature/notifications/presentation/view_model/cubit/unread_notifications_cubit.dart';
 
-// TODO: الإشعارات بتيجي من الـ API، والبيانات دي مؤقتة ومتحسبة من دلوقتي
-// عشان التجميع (اليوم / أمس / سابقاً) يبان صح
-List<AppNotification> _tempNotifications() {
-  final now = DateTime.now();
+/// صندوق الإشعارات بالصفحات من الأحدث للأقدم، والصفحة اللي بعدها بتيجي لما
+/// السكرول يوصل للآخر. القراءة والتأكيد بيبانوا على طول، ولو الطلب فشل
+/// الإشعار بيرجع زي ما كان
+class NotificationsCubit extends GenericPaginationCubit<NotificationModel> {
+  NotificationsCubit(this._dataSource, this._unreadCubit) {
+    initPagination();
+  }
 
-  return [
-    AppNotification(
-      id: 5,
-      type: NotificationType.oilDue,
-      title: 'حان وقت العناية بالزيت',
-      body: 'وصلت إلى ٤٥ كم. يتبقى ٥ كم فقط؛ غيّر الزيت وأرسل الإثبات.',
-      createdAt: now.subtract(const Duration(minutes: 5)),
+  final NotificationsDataSource _dataSource;
+  final UnreadNotificationsCubit _unreadCubit;
+
+  @override
+  Future<Either<Failure, NotificationsPage>> loadPage(int page) =>
+      _dataSource.getNotifications(page: page);
+
+  /// الإشعار اللي جاي من push ممكن مايكونش في القايمة لسه، فالطلب
+  /// بيتبعت برضه
+  Future<void> markAsRead(String id) async {
+    final item = _find(id);
+    if (item != null && item.isRead) return;
+    if (item != null) _replace(item.copyWith(readAtUtc: _now));
+
+    final result = await _dataSource.markAsRead(id);
+    if (isClosed) return;
+    if (result.isError && item != null) _replace(item);
+    await _unreadCubit.getUnreadCount();
+  }
+
+  Future<void> markAllAsRead() async {
+    final previous = state.items;
+    final now = _now;
+    emit(
+      state.copyWith(
+        items: [
+          for (final item in previous)
+            item.isRead ? item : item.copyWith(readAtUtc: now),
+        ],
+      ),
+    );
+
+    final result = await _dataSource.markAllAsRead();
+    if (isClosed) return;
+    if (result.isError) emit(state.copyWith(items: previous));
+    await _unreadCubit.getUnreadCount();
+  }
+
+  /// "تم" على إشعار مهم. بترجع رسالة الخطأ لو فشل عشان الشاشة تعرضها،
+  /// والزرار بيرجع يبان تاني
+  Future<String?> acknowledge(String id) async {
+    final item = _find(id);
+    if (item != null) {
+      final now = _now;
+      _replace(item.copyWith(readAtUtc: now, acknowledgedAtUtc: now));
+    }
+
+    final result = await _dataSource.acknowledge(id);
+    if (isClosed) return null;
+    final error = result.fold<String?>((failure) => failure.message, (_) => null);
+    if (error != null && item != null) _replace(item);
+    await _unreadCubit.getUnreadCount();
+    return error;
+  }
+
+  DateTime get _now => DateTime.now().toUtc();
+
+  NotificationModel? _find(String id) {
+    for (final item in state.items) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
+  void _replace(NotificationModel updated) => emit(
+    state.copyWith(
+      items: [
+        for (final item in state.items) item.id == updated.id ? updated : item,
+      ],
     ),
-    AppNotification(
-      id: 3,
-      type: NotificationType.oilProof,
-      title: 'إثبات الزيت قيد المراجعة',
-      body: 'استلمنا إثباتك #٧٨٢. يبقى العداد دون تصفير حتى الموافقة.',
-      createdAt: now.subtract(const Duration(hours: 4)),
-    ),
-    AppNotification(
-      id: 2,
-      type: NotificationType.oilProof,
-      title: 'تم اعتماد تغيير الزيت',
-      body: 'اعتُمد تغيير ٢٤ أكتوبر عند ١٢٬٤٥٠ كم وبدأت دورة زيت جديدة.',
-      createdAt: DateTime(now.year, now.month, now.day - 1, 8, 45),
-      isRead: true,
-    ),
-  ];
-}
-
-/// الإشعارات من الأحدث للأقدم. متسجل singleton في get_it عشان نقطة الجرس في
-/// الرئيسية تختفي أول ما الراكب يقرا الإشعارات
-class NotificationsCubit extends Cubit<List<AppNotification>> {
-  NotificationsCubit() : super(List.unmodifiable(_tempNotifications()));
-
-  int get unreadCount => state.where((item) => !item.isRead).length;
-
-  // TODO: إبلاغ الـ API بالقراءة لما يجهز
-  void markAsRead(int id) => emit(
-    List.unmodifiable([
-      for (final item in state)
-        item.id == id && !item.isRead ? item.asRead() : item,
-    ]),
-  );
-
-  void markAllAsRead() => emit(
-    List.unmodifiable([
-      for (final item in state) item.isRead ? item : item.asRead(),
-    ]),
   );
 }

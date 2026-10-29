@@ -1,12 +1,15 @@
 import 'package:go_biky/core/router/bottom_nav_app.dart';
-import 'package:go_biky/feature/auth/presentation/view/login_screen.dart';
-import 'package:go_biky/feature/notifications/presentation/view/notifications_screen.dart';
-import 'package:go_biky/feature/oil_change/oil_change_proof.dart';
-import 'package:go_biky/feature/oil_change/presentation/view/oil_change_screen.dart';
-import 'package:go_biky/feature/oil_change/presentation/view/oil_change_status_screen.dart';
-import 'package:go_biky/feature/profile/policy_document.dart';
-import 'package:go_biky/feature/profile/presentation/view/contact_us_screen.dart';
-import 'package:go_biky/feature/profile/presentation/view/policy_screen.dart';
+import 'package:go_biky/feature/auth/presentation/view/screens/login_screen.dart';
+import 'package:go_biky/feature/balance/presentation/view/screens/statement_screen.dart';
+import 'package:go_biky/feature/notifications/data/model/notification_model.dart';
+import 'package:go_biky/feature/notifications/presentation/view/screens/notification_details_screen.dart';
+import 'package:go_biky/feature/notifications/presentation/view/screens/notifications_screen.dart';
+import 'package:go_biky/feature/oil_change/presentation/view/screens/oil_change_status_screen.dart';
+import 'package:go_biky/feature/oil_change/presentation/view/screens/oil_change_screen.dart';
+import 'package:go_biky/feature/profile/data/model/policy_document.dart';
+import 'package:go_biky/feature/profile/presentation/view/screens/contact_us_screen.dart';
+import 'package:go_biky/feature/profile/presentation/view/screens/policy_screen.dart';
+import 'package:go_biky/feature/profile/presentation/view/screens/privacy_policy_screen.dart';
 import 'package:go_biky/feature/splash/presentation/view/splash_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:go_biky/main.dart';
@@ -18,8 +21,11 @@ abstract class AppRouter {
   static const String oilChange = '/oilChange';
   static const String oilChangeStatus = '/oilChangeStatus';
   static const String notifications = '/notifications';
+  static const String notificationDetails = '/notificationDetails';
   static const String contactUs = '/contactUs';
   static const String policy = '/policy';
+  static const String privacyPolicy = '/privacyPolicy';
+  static const String statement = '/statement';
 
   static final GoRouter router = GoRouter(
     navigatorKey: navigatorKey,
@@ -46,13 +52,19 @@ abstract class AppRouter {
       GoRoute(
         path: oilChangeStatus,
         builder: (context, state) =>
-            OilChangeStatusScreen(proof: state.extra! as OilChangeProof),
+            OilChangeStatusScreen(args: state.extra! as OilChangeStatusArgs),
       ),
 
       // -----------------------------------Notifications--------------------------------
       GoRoute(
         path: notifications,
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: notificationDetails,
+        builder: (context, state) => NotificationDetailsScreen(
+          notification: state.extra! as NotificationModel,
+        ),
       ),
 
       // -----------------------------------Profile--------------------------------
@@ -64,6 +76,16 @@ abstract class AppRouter {
         path: policy,
         builder: (context, state) =>
             PolicyScreen(type: state.extra! as PolicyType),
+      ),
+      GoRoute(
+        path: privacyPolicy,
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+
+      // -----------------------------------Balance--------------------------------
+      GoRoute(
+        path: statement,
+        builder: (context, state) => const StatementScreen(),
       ),
     ],
   );

@@ -79,7 +79,7 @@ class TokenRefreshService {
     try {
       final response = await _dio.post(
         Endpoints.refreshToken,
-        data: {'refreshToken': refreshToken, 'deviceInfo': '', 'deviceId': ''},
+        data: {'refreshToken': refreshToken},
       );
 
       final body = response.data;

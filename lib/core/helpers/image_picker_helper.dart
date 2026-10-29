@@ -9,16 +9,29 @@ import 'package:go_biky/core/widget/custom_list_tile.dart';
 import 'package:go_biky/core/widget/stateless/gaps.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// اختيار صورة من الكاميرا أو المعرض
+/// اختيار صورة أو فيديو من الكاميرا أو المعرض
 abstract final class ImagePickerHelper {
   static final ImagePicker _picker = ImagePicker();
 
+  /// امتدادات الفيديو اللي بنقبلها، عشان نتأكد إن الملف فيديو قبل الرفع
+  static const _videoExtensions = {
+    'mp4',
+    'mov',
+    'm4v',
+    '3gp',
+    'mkv',
+    'webm',
+    'avi',
+  };
+
   /// بيفتح bottom sheet فيه الكاميرا والمعرض، و`onPicked` بتتنده بالصورة
-  /// اللي اتختارت (ومابتتندهش لو المستخدم قفل من غير ما يختار)
+  /// اللي اتختارت (ومابتتندهش لو المستخدم قفل من غير ما يختار).
+  /// `video` بيخليه يصوّر أو يختار فيديو بدل صورة
   static Future<void> showImagePicker(
     BuildContext context,
-    ValueChanged<File> onPicked,
-  ) async {
+    ValueChanged<File> onPicked, {
+    bool video = false,
+  }) async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
@@ -26,15 +39,22 @@ abstract final class ImagePickerHelper {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('common.chooseImage'.tr(), style: context.textTheme.titleMedium),
+            Text(
+              (video ? 'common.chooseVideo' : 'common.chooseImage').tr(),
+              style: context.textTheme.titleMedium,
+            ),
             Gaps.v(8.h),
             _SourceTile(
-              icon: Icons.photo_camera_outlined,
+              icon: video
+                  ? Icons.videocam_outlined
+                  : Icons.photo_camera_outlined,
               title: 'common.camera'.tr(),
               source: ImageSource.camera,
             ),
             _SourceTile(
-              icon: Icons.photo_library_outlined,
+              icon: video
+                  ? Icons.video_library_outlined
+                  : Icons.photo_library_outlined,
               title: 'common.gallery'.tr(),
               source: ImageSource.gallery,
             ),
@@ -44,7 +64,7 @@ abstract final class ImagePickerHelper {
       ),
     );
     if (source == null || !context.mounted) return;
-    await pickFrom(context, source, onPicked);
+    await pickFrom(context, source, onPicked, video: video);
   }
 
   /// بيفتح الكاميرا أو المعرض على طول من غير الـ bottom sheet، لو الشاشة
@@ -52,11 +72,12 @@ abstract final class ImagePickerHelper {
   static Future<void> pickFrom(
     BuildContext context,
     ImageSource source,
-    ValueChanged<File> onPicked,
-  ) async {
+    ValueChanged<File> onPicked, {
+    bool video = false,
+  }) async {
     try {
-      final image = await pickImage(source);
-      if (image != null) onPicked(image);
+      final file = video ? await pickVideo(source) : await pickImage(source);
+      if (file != null) onPicked(file);
     } catch (e) {
       // غالباً المستخدم رفض صلاحية الكاميرا/الصور أو الجهاز مافيهوش كاميرا
       loggerError('Image picker failed: $e');
@@ -75,6 +96,16 @@ abstract final class ImagePickerHelper {
     );
     return picked == null ? null : File(picked.path);
   }
+
+  /// بيرجع null لو المستخدم رجع من غير ما يختار
+  static Future<File?> pickVideo(ImageSource source) async {
+    final picked = await _picker.pickVideo(source: source);
+    return picked == null ? null : File(picked.path);
+  }
+
+  /// الملف فيديو حسب امتداده
+  static bool isVideo(String path) =>
+      _videoExtensions.contains(path.split('.').last.toLowerCase());
 }
 
 class _SourceTile extends StatelessWidget {

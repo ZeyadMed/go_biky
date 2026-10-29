@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/cache_manager/cache_manager.dart';
 import 'package:go_biky/core/extensions/context_extension.dart';
+import 'package:go_biky/core/helpers/push_notifications_helper.dart';
 import 'package:go_biky/core/internet_connenction/internet_connection_state.dart';
 import 'package:go_biky/core/internet_connenction/internet_connenction_cubit.dart';
 import 'package:go_biky/core/router/app_router.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
   await CacheManager.init();
   await ThemeModeController.loadSavedTheme();
   await DI.getItInit();
+  await PushNotificationsHelper.init();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

@@ -11,11 +11,50 @@ class FailureWidget extends StatelessWidget {
   final RefreshCallback? onRefresh;
   final String errorMessage;
 
-  const FailureWidget({super.key, this.onRefresh, required this.errorMessage});
+  /// سطر جوه كارت مكان عنصر واحد فشل (زي كارت الرصيد) بدل الشاشة كلها،
+  /// و"إعادة المحاولة" زرار نص في آخره
+  final bool compact;
+
+  const FailureWidget({
+    super.key,
+    this.onRefresh,
+    required this.errorMessage,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+
+    if (compact) {
+      return Container(
+        padding: EdgeInsetsDirectional.fromSTEB(16.w, 8.h, 8.w, 8.h),
+        decoration: BoxDecoration(
+          color: colors.bgSecondary,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: colors.error, size: 22.r),
+            Gaps.h(10.w),
+            Expanded(
+              child: Text(
+                errorMessage,
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+            ),
+            if (onRefresh != null)
+              TextButton(
+                onPressed: onRefresh,
+                style: TextButton.styleFrom(foregroundColor: colors.primary),
+                child: Text('common.retry'.tr()),
+              ),
+          ],
+        ),
+      );
+    }
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,

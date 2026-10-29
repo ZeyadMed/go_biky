@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
+import 'package:go_biky/core/helpers/push_notifications_helper.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/widget/widgets.dart';
 import 'package:go_biky/feature/home/presentation/view/home_screen.dart';
-import 'package:go_biky/feature/oil_change/presentation/view/oil_log_screen.dart';
-import 'package:go_biky/feature/profile/presentation/view/profile_screen.dart';
+import 'package:go_biky/feature/notifications/presentation/view/widgets/notification_navigation.dart';
+import 'package:go_biky/feature/oil_change/presentation/view/screens/oil_log_screen.dart';
+import 'package:go_biky/feature/profile/presentation/view/screens/profile_screen.dart';
 
 /// التابات بنفس ترتيبها في البار
 enum BottomNavTab { home, oilLog, profile }
@@ -45,10 +47,17 @@ class _BottomNavAppState extends State<BottomNavApp> {
   void initState() {
     super.initState();
     BottomNavApp._tabRequest.addListener(_onTabRequested);
+    // التابات بتتبني بعد اللوجين أو فتح التطبيق والجلسة موجودة: التوكن
+    // بيتسجل، والإشعار اللي اتداس عليه قبل كده بيتفتح بعد أول frame
+    PushNotificationsHelper.onSessionStarted();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => NotificationNavigation.attach(),
+    );
   }
 
   @override
   void dispose() {
+    NotificationNavigation.detach();
     BottomNavApp._tabRequest.removeListener(_onTabRequested);
     super.dispose();
   }

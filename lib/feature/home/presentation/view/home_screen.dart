@@ -2,80 +2,151 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_biky/core/bloc/base_bloc.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/router/bottom_nav_app.dart';
 import 'package:go_biky/core/service_locator/service_locator.dart';
-import 'package:go_biky/core/style/assets.dart';
 import 'package:go_biky/core/widget/widgets.dart';
-import 'package:go_biky/feature/notifications/app_notification.dart';
-import 'package:go_biky/feature/notifications/presentation/view_model/cubit/notifications_cubit.dart';
-import 'package:go_biky/feature/oil_change/oil_status.dart';
-import 'package:go_biky/feature/oil_change/presentation/view/oil_change_screen.dart';
+import 'package:go_biky/feature/balance/presentation/view/widgets/balance_card.dart';
+import 'package:go_biky/feature/balance/presentation/view_model/cubit/balance_cubit.dart';
+import 'package:go_biky/feature/notifications/data/model/unread_count_model.dart';
+import 'package:go_biky/feature/notifications/presentation/view_model/cubit/unread_notifications_cubit.dart';
+import 'package:go_biky/feature/oil_change/data/model/oil_status_model.dart';
+import 'package:go_biky/feature/oil_change/presentation/view/screens/oil_change_screen.dart';
+import 'package:go_biky/feature/oil_change/presentation/view/widgets/oil_status.dart';
+import 'package:go_biky/feature/oil_change/presentation/view_model/cubit/oil_status_cubit.dart';
+import 'package:go_biky/feature/profile/data/model/profile_model.dart';
+import 'package:go_biky/feature/profile/presentation/view_model/cubit/profile_cubit.dart';
 import 'package:go_router/go_router.dart';
 
-// TODO: بيانات مؤقتة لحد ما الـ API يجهز
-const _riderName = 'أحمد العتيبي';
+// TODO: صورة الراكب مش في ريسبونس الـ profile
 const String? _riderImage = null;
-const _fleetName = 'مدار';
-const _bikeName = 'ياماها إف زد ٢٥٠';
-const _plateNumber = 'ر ب د • ٤٥٢١';
-const _oilKmUsed = 32;
-const _oilKmInterval = 50;
-const _odometerKm = 12482;
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _oilCubit = getIt<OilStatusCubit>();
+  final _profileCubit = getIt<ProfileCubit>();
+  final _unreadCubit = getIt<UnreadNotificationsCubit>();
+
+  @override
+  void initState() {
+    super.initState();
+    _oilCubit.getOilStatus();
+    // حسابي بيعرض نفس البيانات والتابات بتتبني مع بعض، فأول واحد بس بيطلب
+    if (_profileCubit.state.isInitial) _profileCubit.getProfile();
+    _unreadCubit.getUnreadCount();
+  }
+
+  /// الرصيد بيتطلب أول مرة من الكارت نفسه، والسحب بيحدّث كل حاجة
+  Future<void> _refresh() => Future.wait([
+    _oilCubit.getOilStatus(),
+    _profileCubit.getProfile(),
+    getIt<BalanceCubit>().getBalance(),
+    _unreadCubit.getUnreadCount(),
+  ]);
+
+  @override
   Widget build(BuildContext context) {
-    final oilStatus = OilStatus.from(
-      remainingKm: _oilKmInterval - _oilKmUsed,
-      intervalKm: _oilKmInterval,
-    );
+    final colors = context.appColors;
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          // الـ padding اللي تحت فيه ارتفاع الـ bottom nav، فآخر المحتوى
-          // مايستخباش وراه
-          padding: EdgeInsetsDirectional.fromSTEB(
-            24.w,
-            16.h,
-            24.w,
-            MediaQuery.paddingOf(context).bottom + 24.h,
-          ),
-          child: ResponsiveCenter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Header(
-                  name: _riderName,
-                  image: _riderImage,
-                  oilStatus: oilStatus,
+        child: BlocBuilder<OilStatusCubit, BaseState<OilStatusModel>>(
+          bloc: _oilCubit,
+          builder: (context, state) {
+            final oil = state.data;
+
+            return RefreshIndicator(
+              color: colors.primary,
+              onRefresh: _refresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                // الـ padding اللي تحت فيه ارتفاع الـ bottom nav، فآخر المحتوى
+                // مايستخباش وراه
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  24.w,
+                  16.h,
+                  24.w,
+                  MediaQuery.paddingOf(context).bottom + 24.h,
                 ),
-                Gaps.v(20.h),
-                const _BikeCard(
-                  image: Assets.assetsImagesMotorcycle,
-                  fleetName: _fleetName,
-                  bikeName: _bikeName,
-                  plateNumber: _plateNumber,
+                child: ResponsiveCenter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      BlocBuilder<ProfileCubit, BaseState<ProfileModel>>(
+                        bloc: _profileCubit,
+                        builder: (context, profileState) {
+                          final profile = profileState.data;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _Header(
+                                name: profile?.fullName,
+                                isLoading:
+                                    profile == null && !profileState.isFailure,
+                                image: _riderImage,
+                                oilStatus: oil == null
+                                    ? null
+                                    : OilStatus.of(oil),
+                              ),
+                              Gaps.v(20.h),
+                              switch (profile) {
+                                final profile? => _BikeCard(profile: profile),
+                                null when profileState.isFailure =>
+                                  FailureWidget(
+                                    compact: true,
+                                    errorMessage: 'profile.loadFailed'.tr(),
+                                    onRefresh: _profileCubit.getProfile,
+                                  ),
+                                null => AppShimmer(
+                                  child: ShimmerBox(
+                                    height: 72.h,
+                                    borderRadius: BorderRadius.circular(24.r),
+                                  ),
+                                ),
+                              },
+                            ],
+                          );
+                        },
+                      ),
+                      Gaps.v(16.h),
+                      if (oil != null)
+                        _OilCounterCard(oil: oil)
+                      else if (state.isFailure)
+                        FailureWidget(
+                          errorMessage:
+                              state.errorMessage ??
+                              'common.somethingWentWrong'.tr(),
+                          onRefresh: _oilCubit.getOilStatus,
+                        )
+                      else
+                        AppShimmer(
+                          child: ShimmerBox(
+                            height: 270.h,
+                            borderRadius: BorderRadius.circular(24.r),
+                          ),
+                        ),
+                      Gaps.v(16.h),
+                      const BalanceCard(),
+                      Gaps.v(24.h),
+                      RowWidget(title: 'home.everythingForTheRoad'.tr()),
+                      Gaps.v(12.h),
+                      const _OilLogLink(),
+                    ],
+                  ),
                 ),
-                Gaps.v(16.h),
-                _OilCounterCard(
-                  status: oilStatus,
-                  kmUsed: _oilKmUsed,
-                  kmInterval: _oilKmInterval,
-                  odometerKm: _odometerKm,
-                ),
-                Gaps.v(24.h),
-                RowWidget(title: 'home.everythingForTheRoad'.tr()),
-                Gaps.v(12.h),
-                const _OilLogLink(),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -86,23 +157,31 @@ class HomeScreen extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.name,
+    required this.isLoading,
     required this.image,
     required this.oilStatus,
   });
 
-  final String name;
+  /// null لحد ما بيانات الراكب توصل، ومكانه shimmer وقت `isLoading`
+  final String? name;
+  final bool isLoading;
   final String? image;
 
-  /// آخر التحية بيتغير معاها ("طريقك أخضر" / "حان وقت العناية")
-  final OilStatus oilStatus;
+  /// آخر التحية بيتغير معاها ("طريقك أخضر" / "حان وقت العناية")، ولحد
+  /// ما الحالة توصل بتظهر التحية لوحدها
+  final OilStatus? oilStatus;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final greetingKey = DateTime.now().hour < 12
-        ? 'home.greetingMorning'
-        : 'home.greetingEvening';
-    final greeting = greetingKey.tr(args: [oilStatus.greetingKey.tr()]);
+    final isMorning = DateTime.now().hour < 12;
+    final greeting = switch (oilStatus) {
+      final status? =>
+        (isMorning ? 'home.greetingMorning' : 'home.greetingEvening').tr(
+          args: [status.greetingKey.tr()],
+        ),
+      null => (isMorning ? 'home.goodMorning' : 'home.goodEvening').tr(),
+    };
 
     return Row(
       children: [
@@ -135,24 +214,35 @@ class _Header extends StatelessWidget {
                   color: colors.textSecondary,
                 ),
               ),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.headlineSmall?.copyWith(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w800,
-                  height: 1.4,
+              if (name case final name?)
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.headlineSmall?.copyWith(
+                    fontSize: 22.sp,
+                    fontWeight: FontWeight.w800,
+                    height: 1.4,
+                  ),
+                )
+              else if (isLoading)
+                Padding(
+                  padding: EdgeInsets.only(top: 6.h),
+                  child: AppShimmer(
+                    child: ShimmerBox(height: 20.h, width: 140.w),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
         Gaps.h(12.w),
-        BlocSelector<NotificationsCubit, List<AppNotification>, bool>(
-          bloc: getIt<NotificationsCubit>(),
-          selector: (notifications) =>
-              notifications.any((item) => !item.isRead),
+        BlocSelector<
+          UnreadNotificationsCubit,
+          BaseState<UnreadCountModel>,
+          bool
+        >(
+          bloc: getIt<UnreadNotificationsCubit>(),
+          selector: (state) => (state.data?.unread ?? 0) > 0,
           builder: (context, hasNew) => _NotificationButton(hasNew: hasNew),
         ),
       ],
@@ -207,133 +297,94 @@ class _NotificationButton extends StatelessWidget {
   }
 }
 
-/// صورة الدراجة والنص فوقها في الآخر زي الديزاين، ورقم اللوحة تحت
+/// اسم الدراجة ورقم اللوحة بس، لأن الـ API مابيرجعش صورة للدراجة
 class _BikeCard extends StatelessWidget {
-  const _BikeCard({
-    required this.image,
-    required this.fleetName,
-    required this.bikeName,
-    required this.plateNumber,
-  });
+  const _BikeCard({required this.profile});
 
-  final String? image;
-  final String fleetName;
-  final String bikeName;
-  final String plateNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    // لون الصورة مابيتغيرش مع الوضع، فالهالة دي بلون الكارت بتخلي النص
-    // يتقري لو جه فوق جزء غامق أو فاتح من الصورة
-    final halo = [
-      Shadow(color: colors.bgSecondary, blurRadius: 4.r),
-      Shadow(color: colors.bgSecondary, blurRadius: 12.r),
-    ];
-
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colors.bgTertiary,
-        borderRadius: BorderRadius.circular(24.r),
-      ),
-      child: AspectRatio(
-        aspectRatio: 2,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            FlexibleImage(source: image),
-            // الصورة فاتحة، فالـ dark mode محتاج طبقة غامقة فوق عشان النص
-            // الفاتح يبان وعشان الكارت مايبقاش منوّر وسط الشاشة
-            if (context.isDarkMode)
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      colors.bgSecondary.withValues(alpha: 0.9),
-                      colors.bgSecondary.withValues(alpha: 0),
-                    ],
-                    stops: const [0, 0.6],
-                  ),
-                ),
-              ),
-            PositionedDirectional(
-              top: 14.h,
-              start: 16.w,
-              end: 16.w,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'home.yourBikeAt'.tr(args: [fleetName]),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: colors.textSecondary,
-                      shadows: halo,
-                    ),
-                  ),
-                  Text(
-                    bikeName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.titleMedium?.copyWith(
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w800,
-                      shadows: halo,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            PositionedDirectional(
-              bottom: 12.h,
-              end: 14.w,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: colors.bgSecondary,
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Text(
-                  plateNumber,
-                  style: context.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OilCounterCard extends StatelessWidget {
-  const _OilCounterCard({
-    required this.status,
-    required this.kmUsed,
-    required this.kmInterval,
-    required this.odometerKm,
-  });
-
-  final OilStatus status;
-
-  /// المسافة من آخر تغيير
-  final int kmUsed;
-
-  /// المسافة المفروض يتغير بعدها
-  final int kmInterval;
-  final int odometerKm;
+  final ProfileModel profile;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final textTheme = context.textTheme;
-    final remainingKm = kmInterval - kmUsed;
+    final bikeName = profile.currentMotorcycleType;
+
+    return Container(
+      padding: EdgeInsetsDirectional.fromSTEB(14.w, 14.h, 16.w, 14.h),
+      decoration: BoxDecoration(
+        color: colors.bgSecondary,
+        borderRadius: BorderRadius.circular(24.r),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44.r,
+            height: 44.r,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: Icon(
+              Icons.two_wheeler_rounded,
+              color: colors.primary,
+              size: 24.r,
+            ),
+          ),
+          Gaps.h(12.w),
+          Expanded(
+            child: Text(
+              profile.hasBike
+                  ? bikeName ?? 'profile.bike'.tr()
+                  : 'profile.noBike'.tr(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: profile.hasBike
+                  ? textTheme.titleMedium?.copyWith(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w800,
+                    )
+                  : textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+            ),
+          ),
+          if (profile.currentMotorcyclePlate case final plateNumber?) ...[
+            Gaps.h(8.w),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+              decoration: BoxDecoration(
+                color: colors.bgTertiary,
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Text(
+                context.localizeDigits(plateNumber),
+                style: textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// الدايرة من `maxKm`، والمتبقي هو `remainingToMaxKm` من غير سالب
+class _OilCounterCard extends StatelessWidget {
+  const _OilCounterCard({required this.oil});
+
+  final OilStatusModel oil;
+
+  // TODO: العداد الكلي للدراجة مش في ريسبونس oil-status، وسطره بيظهر
+  // لما يتضاف
+  static const int? _odometerKm = null;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final textTheme = context.textTheme;
+    final status = OilStatus.of(oil);
+    final kmUsed = oil.kmSinceOilChange;
+    final kmInterval = oil.maxKm;
     final statusColor = status.color(colors);
     final infoStyle = textTheme.bodySmall?.copyWith(
       fontSize: 11.sp,
@@ -405,7 +456,7 @@ class _OilCounterCard extends StatelessWidget {
                         'home.km'.tr(
                           args: [
                             context.formatNumber(
-                              remainingKm.clamp(0, kmInterval),
+                              oil.remainingToMaxKm.clamp(0, kmInterval),
                             ),
                           ],
                         ),
@@ -417,12 +468,13 @@ class _OilCounterCard extends StatelessWidget {
                       ),
                     ),
                     Gaps.v(4.h),
-                    Text(
-                      'home.totalOdometer'.tr(
-                        args: [context.formatNumber(odometerKm)],
+                    if (_odometerKm case final odometerKm?)
+                      Text(
+                        'home.totalOdometer'.tr(
+                          args: [context.formatNumber(odometerKm)],
+                        ),
+                        style: infoStyle,
                       ),
-                      style: infoStyle,
-                    ),
                     Text('home.sinceLastChange'.tr(), style: infoStyle),
                   ],
                 ),
@@ -435,7 +487,7 @@ class _OilCounterCard extends StatelessWidget {
             onPressed: () => context.push(
               AppRouter.oilChange,
               extra: OilChangeArgs(
-                odometerKm: odometerKm,
+                odometerKm: _odometerKm,
                 kmUsed: kmUsed,
                 kmInterval: kmInterval,
               ),

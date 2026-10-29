@@ -32,9 +32,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Go Biky needs camera access to take a photo.</string>
+	<string>Go Biky needs camera access to take a photo or record the oil change video.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Go Biky needs microphone access to record the oil change video.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Go Biky needs photo library access to choose a photo.</string>
+	<string>Go Biky needs photo library access to choose a photo or video.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -58,6 +60,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

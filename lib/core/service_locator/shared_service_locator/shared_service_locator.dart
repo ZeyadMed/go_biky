@@ -9,7 +9,11 @@ import 'package:go_biky/core/http/api_consumer.dart';
 import 'package:go_biky/core/http/auth_interceptor.dart';
 import 'package:go_biky/core/http/endpoints.dart';
 import 'package:go_biky/core/http/token_refresh_service.dart';
-import 'package:go_biky/feature/notifications/presentation/view_model/cubit/notifications_cubit.dart';
+import 'package:go_biky/core/service_locator/auth_service_locator/auth_service_locator.dart';
+import 'package:go_biky/core/service_locator/balance_service_locator/balance_service_locator.dart';
+import 'package:go_biky/core/service_locator/notifications_service_locator/notifications_service_locator.dart';
+import 'package:go_biky/core/service_locator/oil_change_service_locator/oil_change_service_locator.dart';
+import 'package:go_biky/core/service_locator/profile_service_locator/profile_service_locator.dart';
 
 class SharedServiceLocator {
   static Future<void> execute({required GetIt getIt}) async {
@@ -47,12 +51,11 @@ class SharedServiceLocator {
     );
 
     // الـ locators بتاعة كل feature تتنادى هنا بعد GenericDataSource
-
-    // الإشعارات واحدة للتطبيق كله، وبتتمسح مع الـ reset
-    getIt.registerLazySingleton<NotificationsCubit>(
-      NotificationsCubit.new,
-      dispose: (cubit) => cubit.close(),
-    );
+    AuthServiceLocator.execute(getIt: getIt);
+    OilChangeServiceLocator.execute(getIt: getIt);
+    BalanceServiceLocator.execute(getIt: getIt);
+    ProfileServiceLocator.execute(getIt: getIt);
+    NotificationsServiceLocator.execute(getIt: getIt);
   }
 
   static BaseOptions _baseOptions() {
