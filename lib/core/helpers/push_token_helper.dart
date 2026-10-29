@@ -15,6 +15,7 @@ abstract final class PushTokenHelper {
     try {
       final messaging = FirebaseMessaging.instance;
       if (Platform.isIOS && await _waitForApnsToken(messaging) == null) {
+        loggerWarn('APNs token unavailable, FCM token skipped');
         return null;
       }
       // register() البديل بيرجع Installation ID مش توكن FCM، والباك لسه
