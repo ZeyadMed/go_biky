@@ -12,7 +12,7 @@ class LoginCubit extends Cubit<BaseState<UserToken>> {
     required String phoneNumber,
     required String password,
   }) async {
-    emit(state.copyWith(status: Status.loading));
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _authDataSource.login(
       phoneNumber: phoneNumber,
       password: password,

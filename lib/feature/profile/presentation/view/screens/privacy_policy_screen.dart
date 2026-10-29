@@ -75,7 +75,12 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                       onRefresh: _cubit.getPrivacyPolicy,
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 32.h),
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                          20.w,
+                          16.h,
+                          20.w,
+                          32.h,
+                        ),
                         child: ResponsiveCenter(
                           child: page.isEmpty
                               ? const _Empty()
@@ -170,7 +175,7 @@ class _Loading extends StatelessWidget {
 
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 32.h),
+      padding: EdgeInsetsDirectional.fromSTEB(20.w, 16.h, 20.w, 32.h),
       child: ResponsiveCenter(
         child: AppShimmer(
           child: Column(

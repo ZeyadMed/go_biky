@@ -4,23 +4,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/bloc/base_bloc.dart';
 import 'package:go_biky/core/extensions/extensions.dart';
-import 'package:go_biky/core/helpers/push_notifications_helper.dart';
 import 'package:go_biky/core/http/session.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/service_locator/service_locator.dart';
-import 'package:go_biky/core/style/assets.dart';
 import 'package:go_biky/core/theme/theme_mode_controller.dart';
 import 'package:go_biky/core/widget/widgets.dart';
-import 'package:go_biky/feature/auth/data/datasource/auth_data_source.dart';
 import 'package:go_biky/feature/balance/presentation/view/widgets/balance_card.dart';
-import 'package:go_biky/feature/profile/data/model/policy_document.dart';
 import 'package:go_biky/feature/profile/data/model/profile_model.dart';
 import 'package:go_biky/feature/profile/presentation/view_model/cubit/profile_cubit.dart';
 import 'package:go_router/go_router.dart';
 
 // TODO: صورة الراكب واسم الشركة مش في ريسبونس الـ profile
 const String? _riderImage = null;
-const _fleetName = 'جو بايكي';
 // TODO: يتقري من package_info_plus لو اتضافت
 const _appVersion = '1.0.0';
 
@@ -66,7 +61,7 @@ class ProfileScreen extends StatelessWidget {
                       const _MenuCard(),
                       Gaps.v(20.h),
                       Text(
-                        '${'profile.footerCompany'.tr(args: [_fleetName])}\n'
+                        '${'profile.footerCompany'.tr(args: ['splash.appName'.tr()])}\n'
                         '${'profile.version'.tr(args: [context.localizeDigits(_appVersion)])}',
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodySmall?.copyWith(
@@ -458,8 +453,8 @@ class _SettingsCard extends StatelessWidget {
 class _MenuCard extends StatelessWidget {
   const _MenuCard();
 
-  /// بيمسح الجلسة وكل الـ singletons (زي الإشعارات) عشان اللي
-  /// يدخل بعده مايلاقيش حاجة من الحساب القديم
+  /// `Session.end` بيمسح الجلسة وكل الـ singletons (زي الإشعارات) عشان
+  /// اللي يدخل بعده مايلاقيش حاجة من الحساب القديم
   Future<void> _logout(BuildContext context) async {
     final colors = context.appColors;
     final confirmed = await CustomConfirmDialog.show(
@@ -473,20 +468,10 @@ class _MenuCard extends StatelessWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    final router = GoRouter.of(context);
-    final navigator = Navigator.of(context, rootNavigator: true);
+    // الـ dialog بيتشال مع التابات لما الخروج يحوّل للوجين، والجلسة بتتمسح
+    // حتى لو الطلبات فشلت عشان المستخدم مايتحبسش في حسابه
     context.showLoadingDialog();
-    // الجهاز بيتشال الأول وهو لسه بالتوكن، عشان إشعارات الحساب ماتوصلش
-    // بعد الخروج. والجلسة بتتمسح حتى لو الطلبات فشلت، عشان المستخدم
-    // مايتحبسش في حسابه
-    await PushNotificationsHelper.unregisterDevice();
-    await getIt<AuthDataSource>().logout();
-    // لو الجلسة كانت منتهية الـ ApiConsumer بيحوّل للوجين لوحده والـ dialog
-    // بيتقفل معاه، فمانعملش pop لصفحة مش بتاعتنا
-    if (navigator.canPop()) navigator.pop();
-    await Session.clear();
-    await DI.resetGetItAndInit();
-    router.go(AppRouter.login);
+    await Session.end();
   }
 
   @override

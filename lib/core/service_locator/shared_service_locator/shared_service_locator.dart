@@ -58,10 +58,15 @@ class SharedServiceLocator {
     NotificationsServiceLocator.execute(getIt: getIt);
   }
 
+  /// من غير receiveTimeout الطلب كان ممكن يفضل معلّق للأبد. رفع الفيديو
+  /// بياخد مهلة أطول لوحده في `GenericDataSource.postFormData`. والـ
+  /// Accept-Language بيتحط في الانترسبتور بلغة الواجهة وقت كل طلب
   static BaseOptions _baseOptions() {
     return BaseOptions(
       baseUrl: Endpoints.baseUrl,
-      connectTimeout: const Duration(seconds: 60),
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -69,7 +74,6 @@ class SharedServiceLocator {
         'Accept-Encoding': 'identity',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'Accept-Language': 'ar',
       },
     );
   }

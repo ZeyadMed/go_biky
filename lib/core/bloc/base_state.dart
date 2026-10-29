@@ -49,6 +49,8 @@ extension BaseStateX<T> on BaseState<T> {
     this.hasReachedMax = false,
   });
 
+  /// `null` في أي باراميتر معناها "سيبه زي ما هو"، فالخطأ القديم كان بيفضل
+  /// بعد النجاح. `clearError` بيمسح `errorMessage` و `failure`
   BaseState<T> copyWith({
     Status? status,
     String? errorMessage,
@@ -61,16 +63,17 @@ extension BaseStateX<T> on BaseState<T> {
     int? statusCode,
     int? page,
     bool? hasReachedMax,
+    bool clearError = false,
   }) {
     return BaseState<T>(
       status: status ?? this.status,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage ?? (clearError ? null : this.errorMessage),
       data: data ?? this.data,
       items: items ?? this.items,
       secondaryMetadata: secondaryMetadata?? this.secondaryMetadata,
       metadata: metadata ?? this.metadata,
       lastUpdated: lastUpdated ?? this.lastUpdated,
-      failure: failure ?? this.failure,
+      failure: failure ?? (clearError ? null : this.failure),
       statusCode: statusCode ?? this.statusCode,
       page: page ?? this.page,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,

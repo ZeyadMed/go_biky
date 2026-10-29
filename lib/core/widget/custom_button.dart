@@ -5,7 +5,7 @@ import 'package:go_biky/core/widget/stateless/gaps.dart';
 
 /// الزرار الأساسي في التطبيق (نفس شكل زرار اللوجن). `title` بيتبعت مترجم.
 /// `outlined` بيخليه شفاف بحدود بلون البراند، و`isLoading` بيعرض loader
-/// وبيقفل الضغط
+/// وبيقفل الضغط. [CustomButton.text] لزرار نص من غير خلفية
 class CustomButton extends StatelessWidget {
   final String title;
   final Widget? icon;
@@ -27,6 +27,13 @@ class CustomButton extends StatelessWidget {
   /// الأيقونة بعد النص بدل ما تبقى قبله
   final bool iconAtEnd;
 
+  /// زرار نص ([CustomButton.text])
+  final bool _textOnly;
+
+  /// لزرار النص: أصغر وعريض ومن غير مساحة زيادة حواليه، لما يبقى جنب
+  /// عنصر تاني في صف (زي "تحديد الكل كمقروء")
+  final bool compact;
+
   const CustomButton({
     super.key,
     required this.title,
@@ -44,11 +51,36 @@ class CustomButton extends StatelessWidget {
     this.fontSize,
     this.fontWeight,
     this.iconAtEnd = false,
-  });
+  }) : _textOnly = false,
+       compact = false;
+
+  /// زرار نص بلون البراند بحجم النص بس مش بعرض الشاشة، زي "إعادة المحاولة"
+  /// و"تغيير الفيديو"
+  const CustomButton.text({
+    super.key,
+    required this.title,
+    required this.onPressed,
+    this.textColor,
+    this.fontWeight,
+    this.compact = false,
+  }) : _textOnly = true,
+       icon = null,
+       backgroundColor = null,
+       borderColor = null,
+       borderRadius = null,
+       padding = null,
+       width = null,
+       height = null,
+       outlined = false,
+       isLoading = false,
+       fontSize = null,
+       iconAtEnd = false;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    if (_textOnly) return _buildText(context);
+
     final background = outlined
         ? Colors.transparent
         : backgroundColor ?? colors.primary;
@@ -109,6 +141,24 @@ class CustomButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildText(BuildContext context) {
+    final textTheme = context.textTheme;
+    final style = compact ? textTheme.labelMedium : textTheme.labelLarge;
+
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: textColor ?? context.appColors.primary,
+        textStyle: style?.copyWith(
+          fontWeight: fontWeight ?? (compact ? FontWeight.w700 : null),
+        ),
+        visualDensity: compact ? VisualDensity.compact : null,
+        tapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : null,
+      ),
+      child: Text(title, textAlign: TextAlign.center),
     );
   }
 }

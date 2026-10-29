@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "600153077112",
+    "project_id": "gobiky-2ca80",
+    "storage_bucket": "gobiky-2ca80.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:600153077112:android:ef5c7bd112031e89bd448d",
+        "android_client_info": {
+          "package_name": "com.theonesystem.go_biky"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnL1Bh_wedyC9fhi3wMHBItlZfFq2TzA0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

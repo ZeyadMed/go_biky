@@ -54,6 +54,7 @@ class CustomDropDown<T> extends StatelessWidget {
         icon: Icon(
           Icons.keyboard_arrow_down_rounded,
           color: colors.textSecondary,
+          size: 24.r,
         ),
         dropdownColor: colors.bgSecondary,
         borderRadius: BorderRadius.circular(14.r),

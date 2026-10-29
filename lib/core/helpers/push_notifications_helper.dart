@@ -35,13 +35,12 @@ abstract final class PushNotificationsHelper {
   /// آخر توكن اتسجل عند الباك، عشان الخروج مايستناش توكن جديد
   static String? _registeredToken;
 
-  /// بتتنادى في main قبل runApp. لو ملفات إعداد Firebase مش موجودة
-  /// التطبيق بيكمل عادي من غير إشعارات
+  /// بتتنادى في main قبل runApp بعد `CrashReporter.init` اللي بيجهز
+  /// Firebase. لو ملفات إعداد Firebase مش موجودة التطبيق بيكمل عادي من
+  /// غير إشعارات
   static Future<void> init() async {
-    try {
-      await Firebase.initializeApp();
-    } catch (e) {
-      loggerWarn('Firebase init failed, push notifications are off: $e');
+    if (Firebase.apps.isEmpty) {
+      loggerWarn('Firebase is not ready, push notifications are off');
       return;
     }
     _initialized = true;

@@ -10,7 +10,7 @@ class ContactsCubit extends Cubit<BaseState<ContactModel>> {
   final ProfileDataSource _dataSource;
 
   Future<void> getContacts() async {
-    emit(state.copyWith(status: Status.loading));
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _dataSource.getContacts();
     if (isClosed) return;
     result.fold(

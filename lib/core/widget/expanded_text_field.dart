@@ -87,6 +87,7 @@ class _ExpandableTextFieldState extends State<ExpandableTextField> {
                   Icon(
                     isExpanded ? Icons.expand_less : Icons.expand_more,
                     color: colors.textSecondary,
+                    size: 24.r,
                   ),
                 ],
               ),

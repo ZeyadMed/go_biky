@@ -12,7 +12,7 @@ class OilChangeCubit extends Cubit<BaseState<OilChangeModel>> {
   final OilChangeDataSource _dataSource;
 
   Future<void> submit({required File video, String? notes}) async {
-    emit(state.copyWith(status: Status.loading));
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _dataSource.submitOilChange(
       video: video,
       notes: notes,

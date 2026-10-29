@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +27,11 @@ class BottomNavApp extends StatefulWidget {
   /// بتاعها
   static void openTab(BuildContext context, BottomNavTab tab) {
     _tabRequest.value = tab;
+    // لو التابات مش في الـ stack الـ popUntil هيشيل كل الصفحات
+    if (_alive == null) {
+      AppRouter.router.go(AppRouter.initialRoute);
+      return;
+    }
     Navigator.of(
       context,
     ).popUntil((route) => route.settings.name == AppRouter.initialRoute);
@@ -32,6 +39,12 @@ class BottomNavApp extends StatefulWidget {
 
   /// طلب فتح تاب من بره، والـ state بتنفّذه وترجّعه null
   static final _tabRequest = ValueNotifier<BottomNavTab?>(null);
+
+  /// موجود طول ما التابات في الشجرة، وبيكمل لما تتشال
+  static Completer<void>? _alive;
+
+  /// الخروج بيستنى التابات تتشال قبل ما يقفل الـ cubits اللي معروضة فيها
+  static Future<void> whenDisposed() => _alive?.future ?? Future.value();
 
   @override
   State<BottomNavApp> createState() => _BottomNavAppState();
@@ -46,19 +59,28 @@ class _BottomNavAppState extends State<BottomNavApp> {
   @override
   void initState() {
     super.initState();
+    BottomNavApp._alive = Completer<void>();
+    // طلب جه والتابات مش موجودة (اتفتحت بـ go)، فبيتنفذ هنا
+    final requested = BottomNavApp._tabRequest.value;
+    if (requested != null) {
+      BottomNavApp._tabRequest.value = null;
+      _currentIndex = requested.index;
+    }
     BottomNavApp._tabRequest.addListener(_onTabRequested);
     // التابات بتتبني بعد اللوجين أو فتح التطبيق والجلسة موجودة: التوكن
     // بيتسجل، والإشعار اللي اتداس عليه قبل كده بيتفتح بعد أول frame
     PushNotificationsHelper.onSessionStarted();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => NotificationNavigation.attach(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) NotificationNavigation.attach();
+    });
   }
 
   @override
   void dispose() {
     NotificationNavigation.detach();
     BottomNavApp._tabRequest.removeListener(_onTabRequested);
+    BottomNavApp._alive?.complete();
+    BottomNavApp._alive = null;
     super.dispose();
   }
 
@@ -90,18 +112,10 @@ class _BottomNavAppState extends State<BottomNavApp> {
     }
 
     _lastBackPress = now;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          duration: _exitInterval,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          content: Text('common.tapAgainToExit'.tr()),
-        ),
-      );
+    context.showInfoMessage(
+      'common.tapAgainToExit'.tr(),
+      duration: _exitInterval,
+    );
   }
 
   @override

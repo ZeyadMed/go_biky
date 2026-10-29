@@ -11,7 +11,9 @@ class BalanceCubit extends Cubit<BaseState<BalanceModel>> {
 
   /// الداتا القديمة بتفضل في الـ state وقت التحديث، فالكارت مابيفضاش
   Future<void> getBalance() async {
-    emit(state.copyWith(status: Status.loading));
+    // الـ cubit مشترك وبيتقفل عند الخروج، فممكن ينادي عليه حد شايله
+    if (isClosed) return;
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _dataSource.getBalance();
     if (isClosed) return;
     result.fold(

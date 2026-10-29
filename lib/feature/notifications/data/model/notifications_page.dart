@@ -1,7 +1,8 @@
+import 'package:go_biky/core/bloc/genaric_pagination.dart';
 import 'package:go_biky/feature/notifications/data/model/notification_model.dart';
 
 /// صفحة من صندوق الإشعارات
-class NotificationsPage {
+class NotificationsPage implements PaginatedPage<NotificationModel> {
   const NotificationsPage({
     required this.pageIndex,
     required this.pageSize,
@@ -15,8 +16,8 @@ class NotificationsPage {
   final int count;
   final int totalPages;
 
-  /// الـ `data` اللي جوه الصفحة. اسمها `items` لأن GenericPaginationCubit
-  /// بيقراها بالاسم ده
+  /// الـ `data` اللي جوه الصفحة
+  @override
   final List<NotificationModel> items;
 
   factory NotificationsPage.fromJson(Map<String, dynamic> json) {
@@ -39,12 +40,11 @@ class NotificationsPage {
     );
   }
 
-  /// GenericPaginationCubit بيقرا رقم الصفحة وعدد الصفحات من هنا بالأسماء دي
-  ({int currentPage, int pagesCount, int perPage, int total}) get pagination =>
-      (
-        currentPage: pageIndex,
-        pagesCount: totalPages,
-        perPage: pageSize,
-        total: count,
-      );
+  @override
+  PageInfo get pagination => (
+    currentPage: pageIndex,
+    pagesCount: totalPages,
+    perPage: pageSize,
+    total: count,
+  );
 }

@@ -7,7 +7,7 @@ import 'package:go_biky/feature/notifications/data/model/notification_model.dart
 import 'package:go_biky/feature/notifications/presentation/view_model/cubit/notifications_cubit.dart';
 import 'package:go_biky/feature/oil_change/presentation/view_model/cubit/oil_log_cubit.dart';
 import 'package:go_biky/feature/oil_change/presentation/view_model/cubit/oil_status_cubit.dart';
-import 'package:go_biky/main.dart';
+import 'package:go_biky/core/router/app_keys.dart';
 import 'package:go_router/go_router.dart';
 
 /// بيعلّم الإشعار مقروء ويفتح الشاشة اللي تخصه حسب نوعه، سواء اتداس عليه
@@ -18,19 +18,40 @@ abstract final class NotificationNavigation {
   static NotificationModel? _pending;
   static bool _attached = false;
 
+  /// شاشة شغالة على حاجة مايصحش تتقطع (زي رفع فيديو الزيت)، فالضغطة
+  /// بتستنى لحد `unlock` بدل ما تقفل الشاشة والطلب يضيع
+  static bool _locked = false;
+
   static void attach() {
     _attached = true;
+    _openPending();
+  }
+
+  static void detach() => _attached = false;
+
+  static void lock() => _locked = true;
+
+  /// الإشعار المستني بيتفتح بعد الـ frame، عشان الشاشة اللي عملت unlock
+  /// تخلّص التنقل بتاعها الأول (زي التحويل لحالة الإثبات)
+  static void unlock() {
+    if (!_locked) return;
+    _locked = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openPending());
+  }
+
+  /// عند الخروج، عشان إشعار الحساب ده مايتفتحش بعد لوجين حساب تاني
+  static void clearPending() => _pending = null;
+
+  static void _openPending() {
     final pending = _pending;
     _pending = null;
     if (pending != null) openFromPush(pending);
   }
 
-  static void detach() => _attached = false;
-
   /// الإشعار ممكن مايكونش في الصندوق لسه، فبعد القراءة الصندوق بيتحدث
   static void openFromPush(NotificationModel notification) {
     final context = navigatorKey.currentContext;
-    if (!_attached || context == null) {
+    if (!_attached || _locked || context == null) {
       _pending = notification;
       return;
     }

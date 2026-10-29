@@ -36,6 +36,56 @@ class _OilLogScreenState extends State<OilLogScreen> {
   Future<void> _refresh() =>
       Future.wait([_logCubit.refresh(), _oilCubit.getOilStatus()]);
 
+  Widget _currentCycle() {
+    return BlocBuilder<OilStatusCubit, BaseState<OilStatusModel>>(
+      bloc: _oilCubit,
+      builder: (context, oilState) => switch (oilState.data) {
+        final oil? => _CurrentCycleCard(oil: oil),
+        null when oilState.isFailure => const SizedBox.shrink(),
+        null => AppShimmer(
+          child: ShimmerBox(
+            height: 96.h,
+            borderRadius: BorderRadius.circular(24.r),
+          ),
+        ),
+      },
+    );
+  }
+
+  /// تحميل الصفحة اللي بعدها أو إعادة محاولتها، والملاحظة اللي في الآخر
+  Widget _footer(BuildContext context, BaseState<OilChangeModel> state) {
+    final colors = context.appColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.isLoadingMore) ...[
+          Gaps.v(16.h),
+          Center(child: CircularProgressIndicator(color: colors.primary)),
+        ],
+        if (state.isLoadingMoreFauilare) ...[
+          Gaps.v(8.h),
+          Center(
+            child: CustomButton.text(
+              title: 'common.retry'.tr(),
+              onPressed: () => _logCubit.fetch(page: state.page),
+            ),
+          ),
+        ],
+        Gaps.v(20.h),
+        Text(
+          'oilLog.footnote'.tr(),
+          textAlign: TextAlign.center,
+          style: context.textTheme.bodySmall?.copyWith(
+            fontSize: 11.sp,
+            color: colors.textHint,
+            height: 1.6,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -80,77 +130,41 @@ class _OilLogScreenState extends State<OilLogScreen> {
                   return RefreshIndicator(
                     color: colors.primary,
                     onRefresh: _refresh,
-                    child: SingleChildScrollView(
+                    // slivers مش Column، عشان التغييرات تتبني مع السكرول
+                    // بدل ما كل اللي اتحمل يتبني مرة واحدة والسجل بيكبر
+                    child: CustomScrollView(
                       controller: _logCubit.scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
-                      // الـ padding اللي تحت فيه ارتفاع الـ bottom nav، فآخر
-                      // المحتوى مايستخباش وراه
-                      padding: EdgeInsetsDirectional.fromSTEB(
-                        24.w,
-                        16.h,
-                        24.w,
-                        MediaQuery.paddingOf(context).bottom + 24.h,
-                      ),
-                      child: ResponsiveCenter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            BlocBuilder<
-                              OilStatusCubit,
-                              BaseState<OilStatusModel>
-                            >(
-                              bloc: _oilCubit,
-                              builder: (context, oilState) =>
-                                  switch (oilState.data) {
-                                    final oil? => _CurrentCycleCard(oil: oil),
-                                    null when oilState.isFailure =>
-                                      const SizedBox.shrink(),
-                                    null => AppShimmer(
-                                      child: ShimmerBox(
-                                        height: 96.h,
-                                        borderRadius: BorderRadius.circular(
-                                          24.r,
-                                        ),
-                                      ),
+                      slivers: [
+                        SliverPadding(
+                          // الـ padding اللي تحت فيه ارتفاع الـ bottom nav،
+                          // فآخر المحتوى مايستخباش وراه
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                            24.w,
+                            16.h,
+                            24.w,
+                            MediaQuery.paddingOf(context).bottom + 24.h,
+                          ),
+                          sliver: SliverResponsiveCenter(
+                            sliver: SliverMainAxisGroup(
+                              slivers: [
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: EdgeInsetsDirectional.only(
+                                      bottom: 24.h,
                                     ),
-                                  },
-                            ),
-                            Gaps.v(24.h),
-                            _Entries(state: state),
-                            if (state.isLoadingMore) ...[
-                              Gaps.v(16.h),
-                              Center(
-                                child: CircularProgressIndicator(
-                                  color: colors.primary,
-                                ),
-                              ),
-                            ],
-                            if (state.isLoadingMoreFauilare) ...[
-                              Gaps.v(8.h),
-                              Center(
-                                child: TextButton(
-                                  onPressed: () =>
-                                      _logCubit.fetch(page: state.page),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: colors.primary,
+                                    child: _currentCycle(),
                                   ),
-                                  child: Text('common.retry'.tr()),
                                 ),
-                              ),
-                            ],
-                            Gaps.v(20.h),
-                            Text(
-                              'oilLog.footnote'.tr(),
-                              textAlign: TextAlign.center,
-                              style: context.textTheme.bodySmall?.copyWith(
-                                fontSize: 11.sp,
-                                color: colors.textHint,
-                                height: 1.6,
-                              ),
+                                _Entries(state: state),
+                                SliverToBoxAdapter(
+                                  child: _footer(context, state),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   );
                 },
@@ -163,7 +177,8 @@ class _OilLogScreenState extends State<OilLogScreen> {
   }
 }
 
-/// التغييرات متجمعة بالشهر، أو shimmer أول تحميل، أو رسالة لو السجل فاضي
+/// التغييرات متجمعة بالشهر، أو shimmer أول تحميل، أو رسالة لو السجل فاضي.
+/// sliver عشان الكروت تتبني مع السكرول
 class _Entries extends StatelessWidget {
   const _Entries({required this.state});
 
@@ -174,15 +189,16 @@ class _Entries extends StatelessWidget {
     final colors = context.appColors;
 
     if (state.items.isEmpty) {
-      if (state.isInitial || state.isLoading) {
-        return const ListShimmer(itemCount: 4);
-      }
-      return Text(
-        'oilLog.empty'.tr(),
-        textAlign: TextAlign.center,
-        style: context.textTheme.bodyMedium?.copyWith(
-          color: colors.textSecondary,
-        ),
+      return SliverToBoxAdapter(
+        child: state.isInitial || state.isLoading
+            ? const ListShimmer(itemCount: 4)
+            : Text(
+                'oilLog.empty'.tr(),
+                textAlign: TextAlign.center,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
       );
     }
 
@@ -192,13 +208,13 @@ class _Entries extends StatelessWidget {
       months.putIfAbsent(DateTime(date.year, date.month), () => []).add(entry);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final (index, MapEntry(key: month, value: entries))
-            in months.entries.indexed) ...[
-          if (index > 0) Gaps.v(24.h),
-          RowWidget(
+    // عنوان كل شهر وبعده تغييراته في لستة واحدة، وكل صف بيتبني لما يظهر
+    final rows = <WidgetBuilder>[
+      for (final (index, MapEntry(key: month, value: entries))
+          in months.entries.indexed) ...[
+        (context) => Padding(
+          padding: EdgeInsetsDirectional.only(top: index > 0 ? 24.h : 0),
+          child: RowWidget(
             title: context.formatMonthYear(month),
             trailing: Text(
               'oilLog.recordsCount'.plural(
@@ -211,12 +227,18 @@ class _Entries extends StatelessWidget {
               ),
             ),
           ),
-          for (final entry in entries) ...[
-            Gaps.v(12.h),
-            _EntryCard(entry: entry),
-          ],
-        ],
+        ),
+        for (final entry in entries)
+          (context) => Padding(
+            padding: EdgeInsetsDirectional.only(top: 12.h),
+            child: _EntryCard(entry: entry),
+          ),
       ],
+    ];
+
+    return SliverList.builder(
+      itemCount: rows.length,
+      itemBuilder: (context, index) => rows[index](context),
     );
   }
 }

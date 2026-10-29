@@ -10,6 +10,7 @@ import 'package:go_biky/core/helpers/image_picker_helper.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/service_locator/service_locator.dart';
 import 'package:go_biky/core/widget/widgets.dart';
+import 'package:go_biky/feature/notifications/presentation/view/widgets/notification_navigation.dart';
 import 'package:go_biky/feature/oil_change/data/model/oil_change_model.dart';
 import 'package:go_biky/feature/oil_change/presentation/view/screens/oil_change_status_screen.dart';
 import 'package:go_biky/feature/oil_change/presentation/view/widgets/oil_change_widgets.dart';
@@ -59,6 +60,7 @@ class _OilChangeScreenState extends State<OilChangeScreen> {
 
   @override
   void dispose() {
+    NotificationNavigation.unlock();
     _notesController.dispose();
     _cubit.close();
     super.dispose();
@@ -92,7 +94,14 @@ class _OilChangeScreenState extends State<OilChangeScreen> {
   }
 
   void _onStateChanged(BuildContext context, BaseState<OilChangeModel> state) {
+    // ضغطة إشعار وقت الرفع كانت بتقفل الشاشة فالنتيجة تضيع ويرفع تاني،
+    // فبتستنى لحد ما الرفع يخلص وبعدين تتفتح
+    if (state.isLoading) {
+      NotificationNavigation.lock();
+      return;
+    }
     if (state.isFailure) {
+      NotificationNavigation.unlock();
       context.showErrorMessage(
         state.errorMessage ?? 'common.somethingWentWrong'.tr(),
       );
@@ -111,6 +120,8 @@ class _OilChangeScreenState extends State<OilChangeScreen> {
         kmInterval: widget.args.kmInterval,
       ),
     );
+    // بعد التنقل، والإشعار المستني بيتفتح بعد الـ frame
+    NotificationNavigation.unlock();
   }
 
   @override
@@ -437,23 +448,22 @@ class _ReviewSection extends StatelessWidget {
         Gaps.v(8.h),
         Row(
           children: [
-            CustomBadge(
-              text: 'oilChange.oneVideoAttached'.tr(),
-              color: colors.success,
-              backgroundColor: colors.successContainer,
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: onChangeVideo,
-              style: TextButton.styleFrom(
-                foregroundColor: colors.primary,
-                textStyle: textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+            // Expanded بدل Spacer، عشان الـ badge يقصّ النص على الشاشة
+            // الصغيرة بدل overflow
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: CustomBadge(
+                  text: 'oilChange.oneVideoAttached'.tr(),
+                  color: colors.success,
+                  backgroundColor: colors.successContainer,
                 ),
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text('oilChange.changeVideo'.tr()),
+            ),
+            CustomButton.text(
+              title: 'oilChange.changeVideo'.tr(),
+              onPressed: onChangeVideo,
+              compact: true,
             ),
           ],
         ),

@@ -4,6 +4,7 @@ import 'package:go_biky/core/helpers/logger.dart';
 import 'package:go_biky/core/http/endpoints.dart';
 import 'package:go_biky/core/http/session.dart';
 import 'package:go_biky/core/http/token_refresh_service.dart';
+import 'package:go_biky/core/router/app_keys.dart';
 
 /// بيحط الـ accessToken على كل ريكوست، ولما ييجي 401 بيجدده
 /// بالـ refreshToken ويعيد الريكوست تاني من غير ما المستخدم يحس.
@@ -26,6 +27,9 @@ class AuthInterceptor extends QueuedInterceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // كانت 'ar' ثابتة، فرسايل الباك كانت عربي حتى في الواجهة الإنجليزي
+    options.headers['Accept-Language'] = currentLanguageCode;
+
     // الداتا سورسز بتبعت Authorization: null للاند بوينتس المفتوحة،
     // فلازم نحترمه ومانكتبش فوقه التوكن المحفوظ
     final optedOut =

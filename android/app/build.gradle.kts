@@ -1,15 +1,25 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
-// google-services.json بتاع مشروع Firebase (gobiky-2ca80) بيتحط جنب الملف ده.
-// لحد ما يتحط البيلد بيكمل بتحذير، والتطبيق بيشتغل من غير إشعارات
+// google-services.json بتاع مشروع Firebase (gobiky-2ca80) جنب الملف ده.
+// لو مش موجود البيلد بيكمل بتحذير، والتطبيق بيشتغل من غير إشعارات
 googleServices {
     missingGoogleServicesStrategy =
         com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy.WARN
+}
+
+// key.properties والـ keystore مش في git. من غيرهم الـ release بيطلع من غير
+// توقيع، بدل ما يتوقّع بمفتاح الـ debug ويترفع على Play بالغلط
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -39,11 +49,20 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (!keystoreProperties.isEmpty) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 }

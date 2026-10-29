@@ -8,6 +8,7 @@ import '../http/either.dart';
 import '../http/failure.dart';
 import '../http/params.dart';
 import '../http/session.dart';
+import 'crash_reporter.dart';
 import 'logger.dart';
 
 class GenericDataSource {
@@ -48,9 +49,9 @@ class GenericDataSource {
         : right;
 
     final accessToken =
-        (payload['accessToken'] ?? right['accessToken']) as String?;
+        (payload['accessToken'] ?? right['accessToken'])?.toString();
     final refreshToken =
-        (payload['refreshToken'] ?? right['refreshToken']) as String?;
+        (payload['refreshToken'] ?? right['refreshToken'])?.toString();
 
     if (accessToken == null || accessToken.isEmpty) {
       loggerWarn('Auth response had no accessToken');
@@ -70,9 +71,7 @@ class GenericDataSource {
       try {
         parsed = fromJson(right);
       } catch (e, stackTrace) {
-        loggerError(stackTrace);
-        loggerWarn(e.toString());
-        return Left(ParsingFailure(message: e.toString()));
+        return Left(_parsingFailure(e, stackTrace));
       }
     }
 
@@ -96,6 +95,7 @@ class GenericDataSource {
         email: payload['email']?.toString(),
       );
     }
+    await CrashReporter.setUser(payload['userId']?.toString());
 
     Session.started();
 
@@ -138,19 +138,12 @@ class GenericDataSource {
             return Right(items);
           }
 
-          // If data is a list directly
-          if (right['data'] is List) {
-            final items =
-                (right['data'] as List).map((e) => fromJson(e)).toList();
-            return Right(items);
-          }
-
           // no matching collection found
           return const Right([]);
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return const Right([]);
+          // كانت بترجع لستة فاضية، فالشاشة تقول "مفيش بيانات" والحقيقة
+          // إن الموديل مش بيفك الريسبونس
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -174,39 +167,34 @@ class GenericDataSource {
     return result.fold(
       (left) => Left(left),
       (right) {
-        if (T == Null) {
-          return Right(null as T);
-        }
-        if (T == String) {
-          logger('right: ${right["data"]}');
-          return Right(right["data"] as T);
-        }
-
-        // If no `fromJson` parser was provided, assume caller expects no payload
-        // (e.g. `Either<Failure, void>`). Return a successful empty value.
-        if (fromJson == null) {
-          return Right(null as T);
-        }
-
-        // If a `fromJson` is provided, try to pass the nested payload where possible.
-        // Many APIs wrap the payload inside a top-level `data` or `result` object.
         try {
-          final Map<String, dynamic> response = right;
-          final dynamic payload = response.containsKey('data')
-              ? response['data']
-              : response.containsKey('data')
-                  ? response['data']
-                  : response;
+          if (T == Null) {
+            return Right(null as T);
+          }
+          if (T == String) {
+            logger('right: ${right["data"]}');
+            return Right(right["data"] as T);
+          }
+
+          // If no `fromJson` parser was provided, assume caller expects no payload
+          // (e.g. `Either<Failure, void>`). Return a successful empty value.
+          if (fromJson == null) {
+            return Right(null as T);
+          }
+
+          // If a `fromJson` is provided, try to pass the nested payload where possible.
+          // Many APIs wrap the payload inside a top-level `data` object.
+          final dynamic payload = right.containsKey('data')
+              ? right['data']
+              : right;
 
           if (payload is Map<String, dynamic>) {
             return Right(fromJson(payload));
           }
 
-          return Right(fromJson(response));
+          return Right(fromJson(right));
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -246,9 +234,7 @@ class GenericDataSource {
             return Right(right as T);
           }
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -262,14 +248,23 @@ class GenericDataSource {
     T Function(Map<String, dynamic>)? fromJson,
   }) async {
     // Process the data to handle lists properly
-    final processedData = _processFormData(data ?? {});
+    final Map<String, dynamic> processedData;
+    try {
+      processedData = await _processFormData(data ?? {});
+    } on FileSystemException catch (e) {
+      return Left(_missingFile(e));
+    }
 
     final result = await _apiConsumer.uploadFile(
       endpoint,
-      formData: await processedData,
+      formData: processedData,
       queryParameters: queryParameters,
+      // الفيديو على نت الموبايل بياخد وقت أطول من مهلة الطلبات العادية،
+      // والسيرفر بيحفظه قبل ما يرد
       options: Options(
         headers: headers,
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 2),
       ),
     );
 
@@ -292,9 +287,7 @@ class GenericDataSource {
             return Right(null as T);
           }
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -308,7 +301,12 @@ class GenericDataSource {
     Map<String, dynamic>? headers,
     T Function(Map<String, dynamic>)? fromJson,
   }) async {
-    final processedData = await _processFormData(data ?? {});
+    final Map<String, dynamic> processedData;
+    try {
+      processedData = await _processFormData(data ?? {});
+    } on FileSystemException catch (e) {
+      return Left(_missingFile(e));
+    }
 
     final result = await _apiConsumer.put(
       endpoint,
@@ -327,12 +325,25 @@ class GenericDataSource {
           }
           return Right(null as T);
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
+  }
+
+  /// الموديل ماعرفش يفك الريسبونس: التفاصيل للّوج و Crashlytics، والمستخدم
+  /// بيشوف رسالة مفهومة بدل نص الـ exception
+  Failure _parsingFailure(Object error, StackTrace stackTrace) {
+    loggerError(stackTrace);
+    loggerWarn(error.toString());
+    CrashReporter.recordError(error, stackTrace, reason: 'response parsing');
+    return ParsingFailure(message: 'common.somethingWentWrong'.tr());
+  }
+
+  /// ملف اتختار واتمسح قبل الرفع (زي فيديو اتشال من المعرض)
+  Failure _missingFile(FileSystemException error) {
+    loggerWarn('Attachment missing: ${error.path}');
+    return CacheFailure(message: 'errors.fileNotFound'.tr());
   }
 
   Future<Map<String, dynamic>> _processFormData(
@@ -347,16 +358,14 @@ class GenericDataSource {
         // Handle File objects by converting to MultipartFile
         final file = value;
         final fileName = file.path.split('/').last;
-        // guard against missing files to avoid PathNotFoundException
-        if (await file.exists()) {
-          processed[key] = await MultipartFile.fromFile(
-            file.path,
-            filename: fileName,
-          );
-        } else {
-          loggerWarn(
-              'File for key `$key` does not exist: ${file.path} -- skipping attachment.');
+        // الملف الناقص كان بيتشال والطلب يكمل من غيره (زي فيديو الزيت)
+        if (!await file.exists()) {
+          throw PathNotFoundException(file.path, const OSError());
         }
+        processed[key] = await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        );
       } else if (value is List) {
         // Handle lists
         processed.remove(key);
@@ -365,15 +374,13 @@ class GenericDataSource {
             // Handle File in list
             final file = value[i] as File;
             final fileName = file.path.split('/').last;
-            if (await file.exists()) {
-              processed['$key[$i]'] = await MultipartFile.fromFile(
-                file.path,
-                filename: fileName,
-              );
-            } else {
-              loggerWarn(
-                  'File for key `$key[$i]` does not exist: ${file.path} -- skipping attachment.');
+            if (!await file.exists()) {
+              throw PathNotFoundException(file.path, const OSError());
             }
+            processed['$key[$i]'] = await MultipartFile.fromFile(
+              file.path,
+              filename: fileName,
+            );
           } else {
             processed['$key[$i]'] = value[i];
           }
@@ -421,9 +428,7 @@ class GenericDataSource {
             return Right(null as T);
           }
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -456,9 +461,7 @@ class GenericDataSource {
             return Right(null as T);
           }
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -491,9 +494,7 @@ class GenericDataSource {
             return Right(null as T);
           }
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );
@@ -522,9 +523,7 @@ class GenericDataSource {
             return Right(null as T);
           }
         } catch (e, stackTrace) {
-          loggerError(stackTrace);
-          loggerWarn(e.toString());
-          return Left(ParsingFailure(message: e.toString()));
+          return Left(_parsingFailure(e, stackTrace));
         }
       },
     );

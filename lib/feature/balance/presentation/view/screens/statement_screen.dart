@@ -74,19 +74,37 @@ class _StatementScreenState extends State<StatementScreen> {
                   return RefreshIndicator(
                     color: colors.primary,
                     onRefresh: _cubit.getStatement,
-                    child: SingleChildScrollView(
+                    // slivers مش Column، عشان الحركات تتبني مع السكرول بدل
+                    // ما الكشف كله يتبني مرة واحدة وهو بيكبر
+                    child: CustomScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-                      child: ResponsiveCenter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _SummaryCard(balance: statement.balance),
-                            Gaps.v(24.h),
-                            _Entries(entries: statement.entries),
-                          ],
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                            20.w,
+                            16.h,
+                            20.w,
+                            24.h,
+                          ),
+                          sliver: SliverResponsiveCenter(
+                            sliver: SliverMainAxisGroup(
+                              slivers: [
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: EdgeInsetsDirectional.only(
+                                      bottom: 24.h,
+                                    ),
+                                    child: _SummaryCard(
+                                      balance: statement.balance,
+                                    ),
+                                  ),
+                                ),
+                                _Entries(entries: statement.entries),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   );
                 },
@@ -106,7 +124,7 @@ class _Loading extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+      padding: EdgeInsetsDirectional.fromSTEB(20.w, 16.h, 20.w, 24.h),
       child: ResponsiveCenter(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -241,7 +259,8 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-/// الحركات متجمعة بالشهر من الأحدث، أو رسالة لو الكشف فاضي
+/// الحركات متجمعة بالشهر من الأحدث، أو رسالة لو الكشف فاضي. sliver عشان
+/// الكروت تتبني مع السكرول
 class _Entries extends StatelessWidget {
   const _Entries({required this.entries});
 
@@ -252,11 +271,13 @@ class _Entries extends StatelessWidget {
     final colors = context.appColors;
 
     if (entries.isEmpty) {
-      return Text(
-        'balance.empty'.tr(),
-        textAlign: TextAlign.center,
-        style: context.textTheme.bodyMedium?.copyWith(
-          color: colors.textSecondary,
+      return SliverToBoxAdapter(
+        child: Text(
+          'balance.empty'.tr(),
+          textAlign: TextAlign.center,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: colors.textSecondary,
+          ),
         ),
       );
     }
@@ -268,13 +289,13 @@ class _Entries extends StatelessWidget {
       months.putIfAbsent(DateTime(date.year, date.month), () => []).add(entry);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final (index, MapEntry(key: month, value: monthEntries))
-            in months.entries.indexed) ...[
-          if (index > 0) Gaps.v(24.h),
-          RowWidget(
+    // عنوان كل شهر وبعده حركاته في لستة واحدة، وكل صف بيتبني لما يظهر
+    final rows = <WidgetBuilder>[
+      for (final (index, MapEntry(key: month, value: monthEntries))
+          in months.entries.indexed) ...[
+        (context) => Padding(
+          padding: EdgeInsetsDirectional.only(top: index > 0 ? 24.h : 0),
+          child: RowWidget(
             title: context.formatMonthYear(month),
             trailing: Text(
               'balance.entriesCount'.plural(
@@ -287,12 +308,18 @@ class _Entries extends StatelessWidget {
               ),
             ),
           ),
-          for (final entry in monthEntries) ...[
-            Gaps.v(12.h),
-            _EntryCard(entry: entry),
-          ],
-        ],
+        ),
+        for (final entry in monthEntries)
+          (context) => Padding(
+            padding: EdgeInsetsDirectional.only(top: 12.h),
+            child: _EntryCard(entry: entry),
+          ),
       ],
+    ];
+
+    return SliverList.builder(
+      itemCount: rows.length,
+      itemBuilder: (context, index) => rows[index](context),
     );
   }
 }

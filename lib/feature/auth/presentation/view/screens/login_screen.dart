@@ -130,19 +130,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       Gaps.v(12.h),
                       Center(
-                        child: TextButton(
+                        child: CustomButton.text(
+                          title: 'auth.forgotPassword'.tr(),
                           // TODO: فتح وسيلة التواصل مع الشركة لما تتحدد
                           onPressed: () {},
-                          style: TextButton.styleFrom(
-                            foregroundColor: colors.primary,
-                            textStyle: context.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          child: Text(
-                            'auth.forgotPassword'.tr(),
-                            textAlign: TextAlign.center,
-                          ),
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       Gaps.v(12.h),

@@ -49,7 +49,12 @@ class NotificationDetailsScreen extends StatelessWidget {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+                  padding: EdgeInsetsDirectional.fromSTEB(
+                    20.w,
+                    16.h,
+                    20.w,
+                    24.h,
+                  ),
                   child: ResponsiveCenter(
                     child: _DetailsCard(notification: notification),
                   ),

@@ -74,7 +74,7 @@
 
 | عايز | استخدم |
 |---|---|
-| زرار | `CustomButton` (`outlined: true` للثانوي، `isLoading` وقت الطلب، `onPressed: null` = متعطل، `iconAtEnd` للأيقونة بعد النص) |
+| زرار | `CustomButton` (`outlined: true` للثانوي، `isLoading` وقت الطلب، `onPressed: null` = متعطل، `iconAtEnd` للأيقونة بعد النص)، و`CustomButton.text` لزرار نص زي "إعادة المحاولة" (`compact: true` لو جنب عنصر في صف) |
 | حقل نص / باسورد / تاريخ | `CustomTextField` (`labelText` فوقه، `obscureText` بيعمل زرار العين لوحده، `onDateSelected` بيفتح date picker) |
 | رقم موبايل | `CustomPhoneField` |
 | قايمة اختيار | `CustomDropDown<T>` (بيشتغل جوه `Form` بـ `validator`) |
@@ -98,8 +98,8 @@
 | حالة خطأ | `FailureWidget` (مع `onRefresh` بيبقى فيه سحب للتحديث وزرار إعادة المحاولة، و`compact: true` لسطر في كارت مكان عنصر واحد فشل) |
 | قفل الكيبورد لما تدوس بره | `DismissKeyboardWrapper` |
 | مسافات | `Gaps.v` / `Gaps.h` |
-| المحتوى على التابلت | `ResponsiveCenter` / `ResponsiveLayout` |
-| رسالة خطأ / نجاح | `context.showErrorMessage` / `context.showSuccessMessage` |
+| المحتوى على التابلت | `ResponsiveCenter` / `ResponsiveLayout`، وللستة طويلة جوه `CustomScrollView` استخدم `SliverResponsiveCenter` مع `SliverList.builder` بدل `Column` |
+| رسالة خطأ / نجاح / عادية | `context.showErrorMessage` / `context.showSuccessMessage` / `context.showInfoMessage` |
 | loading dialog | `context.showLoadingDialog()` |
 | dialog تأكيد (خروج، حذف...) | `CustomConfirmDialog.show(...)` بترجع `true` لو أكّد (للإجراء الخطير ابعت ألوان `error`) |
 
@@ -110,12 +110,14 @@
 
 lib/
 ├── core/
-│   ├── api/
+│   ├── http/
 │   │   └── api_consumer.dart
-│   ├── data_source/
+│   ├── helpers/
 │   │   └── generic_data_source.dart
-│   └── state/
-│       └── base_state.dart
+│   └── bloc/
+│       ├── base_bloc.dart
+│       ├── base_state.dart
+│       └── genaric_pagination.dart
 └── feature/
     └── login/
         ├── data/
@@ -129,17 +131,17 @@ lib/
                 └── cubit/
 
 ### قواعد الهيكلة
-- أي feature جديدة تتعمل في lib/features/<feature_name>/ بنفس الفولدرات دي
+- أي feature جديدة تتعمل في lib/feature/<feature_name>/ (مفرد، مش features) بنفس الفولدرات دي
 - ممنوع إضافة فولدرات تانية (زي domain أو repository) من غير ما تسألني
 - الـ widgets الخاصة بشاشة واحدة تتحط في widgets/ بتاعة الـ feature دي
-- الـ widgets المشتركة بين أكتر من feature تتحط في lib/core/widgets/
+- الـ widgets المشتركة بين أكتر من feature تتحط في lib/core/widget/
 
 ## استخدام الـ Core (إلزامي)
 
 قبل ما تكتب أي datasource أو cubit، اقرا الملفات دي الأول وافهمها:
-- lib/core/api/api_consumer.dart
-- lib/core/data_source/generic_data_source.dart
-- lib/core/state/base_state.dart
+- lib/core/http/api_consumer.dart
+- lib/core/helpers/generic_data_source.dart
+- lib/core/bloc/base_state.dart (و `base_bloc.dart`، و `genaric_pagination.dart` للقوايم بالصفحات)
 
 ### الـ Data Source
 - أي datasource جديد لازم يستخدم الـ GenericDataSource الموجود في core

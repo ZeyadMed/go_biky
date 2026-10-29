@@ -73,8 +73,16 @@ class _SafeScrollController extends ScrollController {
   }
 }
 
-// افتراض: عندك هياكل شبيهة باللي استخدمتها في كودك (Failure, BaseState, Status)
-// لو مسمياتك مختلفة عدّلها حسب مشروعك.
+/// عدد الصفحات ورقم الصفحة زي ما الباك بيرجعهم
+typedef PageInfo = ({int currentPage, int pagesCount, int perPage, int total});
+
+/// صفحة من API بالصفحات. موديل الصفحة بيعمل implements عشان الـ cubit يقرا
+/// العناصر وعدد الصفحات بأنواعهم، وأي تغيير في الأسماء يطلع وقت الـ compile
+/// مش عند المستخدم
+abstract interface class PaginatedPage<T> {
+  List<T> get items;
+  PageInfo get pagination;
+}
 
 abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
   GenericPaginationCubit() : super(BaseState<T>());
@@ -87,23 +95,16 @@ abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
   /// the individual [ScrollPosition]s and forwards metrics to the
   /// provided callback.
   late final ScrollController scrollController = _SafeScrollController(
-    onPositionScroll: _handlePositionScroll,
+    onPositionScroll: _maybeLoadMore,
   );
+
+  /// كل `fetch(page: 1)` بيبدأ جيل جديد، فنتيجة صفحة قديمة توصل بعد
+  /// الـ refresh بتتجاهل بدل ما تتلزق على اللستة الجديدة وتكرر عناصر
+  int _generation = 0;
 
   // استدعيها من initState للـ Widget أو من مكان التهيئة
   void initPagination() {
-    // Ensure the controller has our listener attached. If the framework
-    // attaches the controller to a Scrollable normally this will work.
-    // If attaching fails (e.g. because another Scrollable already used
-    // the same controller), the safe controller will instead attach a
-    // listener directly to the ScrollPosition and call
-    // `_handlePositionScroll`.
-    try {
-      scrollController.addListener(_onScroll);
-    } catch (_) {
-      // In case of unexpected errors, ensure we still try to rely on
-      // position-level callbacks (the safe controller handles this).
-    }
+    scrollController.addListener(_onScroll);
   }
 
   // لو عايز تُنضّف (close) لما الـ cubit يتقفل
@@ -115,35 +116,21 @@ abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
   }
 
   void _onScroll() {
-    // Default controller-based path (when controller is attached normally)
-    try {
-      final pos = scrollController.position;
-      if (pos.pixels >= pos.maxScrollExtent &&
-          !state.hasReachedMax &&
-          !state.isFailure &&
-          !state.isLoading &&
-          !state.isLoadingMore &&
-          !state.isLoadingMoreFauilare) {
-        fetch(page: state.page);
-      }
-    } catch (_) {
-      // If the controller doesn't expose a position (because we fell back
-      // to position-level listeners), ignore here — position callbacks
-      // will call _handlePositionScroll instead.
-    }
+    // لو الـ controller متركب على أكتر من scrollable مالوش position واحدة،
+    // والـ position نفسها بتنادي _maybeLoadMore
+    if (scrollController.positions.length != 1) return;
+    _maybeLoadMore(scrollController.position);
   }
 
-  void _handlePositionScroll(ScrollPosition pos) {
-    try {
-      if (pos.pixels >= pos.maxScrollExtent &&
-          !state.hasReachedMax &&
-          !state.isFailure &&
-          !state.isLoading &&
-          !state.isLoadingMore &&
-          !state.isLoadingMoreFauilare) {
-        fetch(page: state.page);
-      }
-    } catch (_) {}
+  void _maybeLoadMore(ScrollPosition pos) {
+    if (pos.pixels >= pos.maxScrollExtent &&
+        !state.hasReachedMax &&
+        !state.isFailure &&
+        !state.isLoading &&
+        !state.isLoadingMore &&
+        !state.isLoadingMoreFauilare) {
+      fetch(page: state.page);
+    }
   }
 
   // دالة عامة للاستدعاء من الـ UI لو عايز تعيد التحميل
@@ -159,6 +146,7 @@ abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
     Map<String, dynamic>? metadata,
     bool reset = true,
   }) async {
+    if (isClosed) return;
     // Merge provided metadata with existing metadata so filters accumulate
     final Map<String, dynamic> newMeta = {
       ...state.metadata,
@@ -189,7 +177,7 @@ abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
   /// the first page. Useful when you want to clear date filtering and
   /// reload data from scratch.
   Future<void> fetchFirstPageClearDate() async {
-    // emit(state.copyWith(metadata: null));
+    if (isClosed) return;
     final Map<String, dynamic> newMeta = {...state.metadata}..remove('date');
 
     // Reset pagination state and emit loading so UI shows the loading state.
@@ -208,15 +196,22 @@ abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
 
   // الدالة العامة اللي تدير الفيتش
   Future<void> fetch({required int page}) async {
+    // الـ cubit مشترك وبيتقفل عند الخروج، والشاشة ممكن تكون لسه شايلاه
+    if (isClosed) return;
     if (state.hasReachedMax && page != 1) return;
 
-    if (page == 1) {
-      emit(state.copyWith(status: Status.loading));
-    } else {
-      emit(state.copyWith(status: Status.isLoadingMore));
-    }
+    if (page == 1) _generation++;
+    final generation = _generation;
 
-    final Either<Failure, dynamic> result = await loadPage(page);
+    emit(
+      state.copyWith(
+        status: page == 1 ? Status.loading : Status.isLoadingMore,
+        clearError: true,
+      ),
+    );
+
+    final result = await loadPage(page);
+    if (isClosed || generation != _generation) return;
 
     result.fold(
       (failure) => _handleFailure(page, failure),
@@ -225,137 +220,39 @@ abstract class GenericPaginationCubit<T> extends Cubit<BaseState<T>> {
   }
 
   void _handleFailure(int page, Failure failure) {
-    if (page == 1) {
-      emit(
-        state.copyWith(status: Status.failure, errorMessage: failure.message),
-      );
-    } else {
-      emit(
-        state.copyWith(
-          status: Status.isLoadingMoreFauilare,
-          errorMessage: failure.message,
-        ),
-      );
-    }
+    emit(
+      state.copyWith(
+        status: page == 1 ? Status.failure : Status.isLoadingMoreFauilare,
+        errorMessage: failure.message,
+        failure: failure,
+      ),
+    );
   }
 
-  void _handleSuccess(int page, dynamic pageResult) {
-    // Attempt to handle several pagination shapes used by different APIs.
-    // Common shapes:
-    // - pageResult.items (List)
-    // - pageResult.clients (List)  <- used by Clients API (ClientData)
-    // - pageResult['data'] (Map) with inner list
-    try {
-      // Try multiple known keys to obtain the list of items.
-      dynamic rawList;
-      try {
-        rawList = pageResult.items;
-      } catch (_) {
-        try {
-          rawList = (pageResult as dynamic).clients;
-        } catch (_) {
-          try {
-            // some APIs return 'opponents' (opponents list)
-            rawList = (pageResult as dynamic).opponents;
-          } catch (_) {
-            try {
-              // opponent lawyers, or other similarly named lists
-              rawList = (pageResult as dynamic).opponentLawyers;
-            } catch (_) {
-              try {
-                // fallback to map-like access (e.g. when pageResult is a Map)
-                rawList = pageResult['data'];
-              } catch (_) {
-                rawList = null;
-              }
-            }
-          }
-        }
-      }
+  void _handleSuccess(int page, PaginatedPage<T> result) {
+    final info = result.pagination;
 
-      // If still null, try to introspect Map shapes: find the first List value
-      if (rawList == null) {
-        try {
-          if (pageResult is Map) {
-            // 1) check direct values for a List
-            for (final v in pageResult.values) {
-              if (v is List) {
-                rawList = v;
-                break;
-              }
-              // 2) sometimes the API wraps list under a nested 'data' map
-              if (v is Map && v['data'] is List) {
-                rawList = v['data'];
-                break;
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
-      if (rawList == null) {
-        throw StateError('Unable to parse paginated items from response');
-      }
-
-      final List<T> data = (rawList as List).cast<T>();
-
-      // Debug logging to help trace pagination issues
-      try {
-        final dynPag = pageResult.pagination;
-        debugPrint(
-          '[Pagination] page requested: $page, received items: ${data.length}',
-        );
-        debugPrint('[Pagination] pagination raw: ${dynPag.toString()}');
-      } catch (_) {}
-
-      int toInt(dynamic v) {
-        if (v == null) return 0;
-        if (v is int) return v;
-        if (v is double) return v.toInt();
-        if (v is String) return int.tryParse(v) ?? 0;
-        return 0;
-      }
-
-      final dynamic pagination = pageResult.pagination;
-      final int currentPage = toInt(pagination?.currentPage);
-      int pagesCount = toInt(pagination?.pagesCount);
-      final int perPage = toInt(pagination?.perPage);
-      final int total = toInt(pagination?.total);
-
-      // If pagesCount is not provided, try calculating from total/perPage
-      if (pagesCount == 0 && perPage > 0 && total > 0) {
-        pagesCount = ((total + perPage - 1) / perPage).ceil();
-      }
-
-      // Fallback: if pagesCount still zero, but `total` seems like page count, use it
-      if (pagesCount == 0 && total > 0) {
-        pagesCount = total;
-      }
-
-      final List<T> updated = page == 1 ? data : [...state.items, ...data];
-
-      final bool reachedMax = (pagesCount > 0)
-          ? (currentPage >= pagesCount)
-          : data.isEmpty;
-
-      emit(
-        state.copyWith(
-          status: Status.success,
-          items: updated,
-          page: page + 1,
-          hasReachedMax: reachedMax,
-        ),
-      );
-      debugPrint(
-        '[Pagination] emitted success: items=${updated.length}, nextPage=${page + 1}, hasReachedMax=$reachedMax',
-      );
-    } catch (e) {
-      // If parsing failed, emit failure so UI can handle it and avoid silent breakage.
-      debugPrint('[Pagination] parse error: ${e.toString()}');
-      emit(state.copyWith(status: Status.failure, errorMessage: e.toString()));
+    // لو الباك مابعتش عدد الصفحات بنحسبه من الإجمالي، ولو مفيش ده كمان
+    // الصفحة الفاضية هي الآخر
+    var pagesCount = info.pagesCount;
+    if (pagesCount <= 0 && info.perPage > 0 && info.total > 0) {
+      pagesCount = (info.total / info.perPage).ceil();
     }
+    // بالصفحة اللي طلبناها مش اللي راجعة، عشان لو الباك مابعتهاش
+    final reachedMax = pagesCount > 0
+        ? page >= pagesCount
+        : result.items.isEmpty;
+
+    emit(
+      state.copyWith(
+        status: Status.success,
+        items: page == 1 ? result.items : [...state.items, ...result.items],
+        page: page + 1,
+        hasReachedMax: reachedMax,
+      ),
+    );
   }
 
   // الـ subclass لازم ي implement الدالة دي
-  Future<Either<Failure, dynamic>> loadPage(int page);
+  Future<Either<Failure, PaginatedPage<T>>> loadPage(int page);
 }

@@ -84,44 +84,56 @@ class _SplashScreenState extends State<SplashScreen>
               SafeArea(
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    child: Column(
-                      children: [
-                        Gaps.v(80.h),
-                        SlideTransition(
-                          position: _titleSlideAnimation,
-                          child: const _BrandTitle(),
+                  // على الشاشات القصيرة (أو split screen) المحتوى بيعمل scroll
+                  // بدل overflow، وعلى العادية الـ Spacer بيفضل زي ما هو
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
                         ),
-                        Gaps.v(12.h),
-                        Text(
-                          'splash.tagline'.tr(),
-                          textAlign: TextAlign.center,
-                          style: TextStyles.whiteText(
-                            15,
-                            weight: FontWeight.w400,
+                        child: IntrinsicHeight(
+                          child: Column(
+                            children: [
+                              Gaps.v(80.h),
+                              SlideTransition(
+                                position: _titleSlideAnimation,
+                                child: const _BrandTitle(),
+                              ),
+                              Gaps.v(12.h),
+                              Text(
+                                'splash.tagline'.tr(),
+                                textAlign: TextAlign.center,
+                                style: TextStyles.whiteText(
+                                  15,
+                                  weight: FontWeight.w400,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'splash.headline'.tr(),
+                                textAlign: TextAlign.center,
+                                style: TextStyles.whiteText(26),
+                              ),
+                              Gaps.v(16.h),
+                              Text(
+                                'splash.subtitle'.tr(),
+                                textAlign: TextAlign.center,
+                                style:
+                                    TextStyles.whiteText(
+                                      14,
+                                      weight: FontWeight.w400,
+                                    ).copyWith(
+                                      color: AppColors.whiteTextMuted,
+                                      height: 1.6,
+                                    ),
+                              ),
+                              Gaps.v(48.h),
+                            ],
                           ),
                         ),
-                        const Spacer(),
-                        Text(
-                          'splash.headline'.tr(),
-                          textAlign: TextAlign.center,
-                          style: TextStyles.whiteText(26),
-                        ),
-                        Gaps.v(16.h),
-                        Text(
-                          'splash.subtitle'.tr(),
-                          textAlign: TextAlign.center,
-                          style: TextStyles.whiteText(
-                            14,
-                            weight: FontWeight.w400,
-                          ).copyWith(
-                            color: AppColors.whiteTextMuted,
-                            height: 1.6,
-                          ),
-                        ),
-                        Gaps.v(48.h),
-                      ],
+                      ),
                     ),
                   ),
                 ),

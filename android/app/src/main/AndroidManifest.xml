@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- كانت جاية بالصدفة من مكتبة Firebase، ومن غيرها الـ release مالوش نت -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- allowBackup: التوكنز ماتتنسخش على Google Drive وترجع على جهاز تاني،
+         ومفاتيح الـ Keystore أصلاً مابتترجعش فالـ backup بيبقى بايظ -->
     <application
         android:label="Go Biky"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:go_biky/core/cache_manager/cache_manager.dart';
 import 'package:go_biky/core/helpers/logger.dart';
 import 'package:go_biky/core/http/endpoints.dart';
+import 'package:go_biky/core/router/app_keys.dart';
 
 /// نتيجة محاولة التجديد. بنفرق بين إن الجلسة انتهت فعلاً وبين إن النت
 /// وقع أو السيرفر عطلان، عشان مانطردش المستخدم على مشكلة مؤقتة.
@@ -36,14 +37,13 @@ class TokenRefreshService {
           Dio(
             BaseOptions(
               baseUrl: Endpoints.baseUrl,
-              connectTimeout: const Duration(seconds: 30),
+              connectTimeout: const Duration(seconds: 20),
               receiveTimeout: const Duration(seconds: 30),
               sendTimeout: const Duration(seconds: 30),
               headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'Accept-Encoding': 'identity',
-                'Accept-Language': 'ar',
               },
             ),
           );
@@ -80,7 +80,15 @@ class TokenRefreshService {
       final response = await _dio.post(
         Endpoints.refreshToken,
         data: {'refreshToken': refreshToken},
+        options: Options(headers: {'Accept-Language': currentLanguageCode}),
       );
+
+      // المستخدم خرج والطلب لسه شغال: لو حفظنا التوكنز الجديدة هيرجع
+      // يلاقي نفسه داخل بعد ما خرج
+      if (CacheManager.getRefreshTokenSync() != refreshToken) {
+        loggerWarn('Refresh finished after the session ended, discarding');
+        return const RefreshSessionExpired();
+      }
 
       final body = response.data;
       if (body is! Map) {

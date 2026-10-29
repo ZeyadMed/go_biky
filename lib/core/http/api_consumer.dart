@@ -1,15 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:go_router/go_router.dart';
 import 'package:go_biky/core/extensions/context_extension.dart';
 import 'package:go_biky/core/helpers/logger.dart';
 import 'package:go_biky/core/http/endpoints.dart';
-import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/http/session.dart';
-import 'package:go_biky/main.dart';
+import 'package:go_biky/core/router/app_keys.dart';
 
 import 'either.dart';
 import 'failure.dart';
@@ -118,31 +117,52 @@ final class BaseApiConsumer implements ApiConsumer {
   final int maxRetries;
   final Duration retryDelay;
 
+  /// قبل كده القيم دي كانت بتتجاهل، والـ retry ماكانش بيشتغل أصلاً
   BaseApiConsumer({
     required this._dio,
-    int maxRetries = 5,
-    Duration retryDelay = const Duration(seconds: 2),
-  }) : maxRetries = 2,
-       retryDelay = const Duration(seconds: 5);
+    this.maxRetries = 2,
+    this.retryDelay = const Duration(seconds: 2),
+  });
 
+  /// بيعيد المحاولة للأخطاء المؤقتة بس ([_isTransient]). أي خطأ تاني
+  /// (401، validation، 404...) هيرجع نفس النتيجة لو اتعاد
   @override
   Future<Either<Failure, Map<String, dynamic>>> retryApiCall(
     Future<Either<Failure, Map<String, dynamic>>> Function() apiCall, {
-    int retryCount = 2,
+    int retryCount = 0,
   }) async {
     final result = await apiCall();
     return result.fold((failure) async {
-      if (retryCount < maxRetries) {
+      final transient =
+          failure is NetworkFailure ||
+          failure is RequestTimeOutFailure ||
+          _retryableStatusCodes.contains(failure.statusCode);
+      if (transient && retryCount < maxRetries) {
         log("API failed, retrying attempt #${retryCount + 1}");
         await Future.delayed(retryDelay);
         return retryApiCall(apiCall, retryCount: retryCount + 1); //recursion
-      } else {
-        log("Max retries reached, API failed: ${failure.message}");
-        return Left(failure);
       }
+      return Left(failure);
     }, (success) => Right(success));
   }
 
+  /// أخطاء السيرفر اللي غالباً مؤقتة (gateway / مش متاح). الـ 500 غالباً
+  /// bug فإعادته مش هتفرق
+  static const _retryableStatusCodes = {502, 503, 504};
+
+  /// النت وقع أو السيرفر ماردش على الاتصال أو رجّع gateway error. الـ
+  /// receiveTimeout مش منهم، لأن السيرفر استلم الطلب وبطيء فالإعادة هتطوّل
+  bool _isTransient(DioException e) => switch (e.type) {
+    DioExceptionType.connectionError ||
+    DioExceptionType.connectionTimeout => true,
+    DioExceptionType.badResponse => _retryableStatusCodes.contains(
+      e.response?.statusCode,
+    ),
+    _ => false,
+  };
+
+  /// الـ GET بس اللي بيتعاد لأنه مابيغيرش حاجة عند الباك. الإعادة قبل ما
+  /// الخطأ يتحول لـ Failure، فرسالة الخطأ بتظهر مرة واحدة بعد آخر محاولة
   @override
   Future<Either<Failure, Map<String, dynamic>>> get(
     String url, {
@@ -152,7 +172,7 @@ final class BaseApiConsumer implements ApiConsumer {
     CancelToken? cancelToken,
     ProgressCallback? onReceiveProgress,
   }) async {
-    apiCall() async {
+    for (var attempt = 0; ; attempt++) {
       try {
         final response = await _dio.get(
           url,
@@ -162,21 +182,19 @@ final class BaseApiConsumer implements ApiConsumer {
           data: data,
           onReceiveProgress: onReceiveProgress,
         );
-        return Right<Failure, Map<String, dynamic>>(
-          response.data as Map<String, dynamic>,
-        );
+        return Right(_asMap(response.data));
       } on DioException catch (e) {
+        if (attempt < maxRetries && _isTransient(e)) {
+          log('GET $url failed, retrying attempt #${attempt + 1}');
+          await Future.delayed(retryDelay);
+          if (!(cancelToken?.isCancelled ?? false)) continue;
+        }
         loggerError(e.toString());
-        final failure = await _handleDioError(e);
-        return Left<Failure, Map<String, dynamic>>(failure);
+        return Left(await _handleDioError(e));
       } catch (e) {
-        return Left<Failure, Map<String, dynamic>>(
-          UnknownFailure(message: _unexpected(e)),
-        );
+        return Left(UnknownFailure(message: _unexpected(e)));
       }
     }
-
-    return await retryApiCall(apiCall);
   }
 
   @override
@@ -193,9 +211,7 @@ final class BaseApiConsumer implements ApiConsumer {
         options: Options(headers: headers),
         cancelToken: cancelToken,
       );
-      return Right<Failure, Map<String, dynamic>>(
-        response.data as Map<String, dynamic>,
-      );
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       loggerError(e.toString());
       final failure = await _handleDioError(e);
@@ -228,7 +244,7 @@ final class BaseApiConsumer implements ApiConsumer {
         onReceiveProgress: onReceiveProgress,
       );
 
-      return Right(response.data as Map<String, dynamic>);
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       loggerError(e.toString());
       final failure = await _handleDioError(e);
@@ -262,7 +278,7 @@ final class BaseApiConsumer implements ApiConsumer {
         onReceiveProgress: onReceiveProgress,
       );
       log('right');
-      return Right(response.data as Map<String, dynamic>);
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       log('left $e');
       loggerError(e.toString());
@@ -297,7 +313,7 @@ final class BaseApiConsumer implements ApiConsumer {
         onReceiveProgress: onReceiveProgress,
       );
 
-      return Right(response.data as Map<String, dynamic>);
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       loggerError(e.toString());
       final failure = await _handleDioError(e);
@@ -328,7 +344,7 @@ final class BaseApiConsumer implements ApiConsumer {
         cancelToken: cancelToken,
       );
 
-      return Right(response.data as Map<String, dynamic>);
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       loggerError(e.toString());
       final failure = await _handleDioError(e);
@@ -391,7 +407,7 @@ final class BaseApiConsumer implements ApiConsumer {
         onReceiveProgress: onReceiveProgress,
       );
 
-      return Right(response.data as Map<String, dynamic>);
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       loggerError(e.toString());
       return Left(await _handleDioError(e));
@@ -435,18 +451,32 @@ final class BaseApiConsumer implements ApiConsumer {
 
     // لو وصلنا هنا يبقى الانترسبتور جرّب يجدد بالـ refresh token وفشل،
     // يعني الجلسة انتهت فعلاً والتوكنز اتمسحت هناك. لو كذا ريكوست وقعوا
-    // مع بعض، أول واحد بس هو اللي بيحوّل.
+    // مع بعض، أول واحد بس هو اللي بيحوّل. ومن غير await عشان الطلب ده
+    // يرجع على طول ومايستناش الخروج يخلص
     if (Session.claimExpiryRedirect()) {
-      final context = navigatorKey.currentContext;
-      if (context != null) {
-        context.showErrorMessage('errors.sessionExpired'.tr());
-        context.go(AppRouter.login);
-      }
+      _showError('errors.sessionExpired'.tr());
+      unawaited(Session.end(callBackend: false));
     }
     return UnauthorizedFailure(
       message: 'errors.sessionExpired'.tr(),
       statusCode: statusCode,
     );
+  }
+
+  /// الباك ممكن يرجّع body فاضي (204) أو List أو نص، والـ cast المباشر
+  /// لـ Map كان بيحوّل الطلب الناجح لخطأ
+  Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is List) return {'data': data};
+    if (data is String && data.isNotEmpty) {
+      try {
+        return _asMap(json.decode(data));
+      } on FormatException {
+        return {'data': data};
+      }
+    }
+    return {};
   }
 
   /// الـ context ممكن يبقى null لو الريكوست خلص والأبلكيشن مقفول أو بيتبني
@@ -475,17 +505,16 @@ final class BaseApiConsumer implements ApiConsumer {
 
   Future<Failure> _handleDioError(DioException error) async {
     switch (error.type) {
+      // الإلغاء بيبقى مقصود (الشاشة اتقفلت مثلاً)، فمفيش رسالة للمستخدم
       case DioExceptionType.cancel:
-        final message = 'errors.requestCancelled'.tr();
-        _showError(message);
-        return ServerFailure(message: message);
+        return ServerFailure(message: 'errors.requestCancelled'.tr());
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.transformTimeout:
       case DioExceptionType.sendTimeout:
         final message = 'errors.timeout'.tr();
         _showError(message);
-        return ServerFailure(message: message);
+        return RequestTimeOutFailure(message: message);
       case DioExceptionType.badResponse:
         if (error.response?.statusCode == 401) {
           return _handleUnauthorized(error);
@@ -552,11 +581,12 @@ final class BaseApiConsumer implements ApiConsumer {
                 final errors = decoded['result'] as Map<String, dynamic>;
                 List<String> messages = [];
 
+                // رسالة الباك لوحدها من غير اسم الحقل (زي "PhoneNumber: ...")
                 errors.forEach((key, value) {
                   if (value is List) {
-                    messages.addAll(value.map((e) => '$key: $e'));
+                    messages.addAll(value.map((e) => '$e'));
                   } else if (value is String) {
-                    messages.add('$key: $value');
+                    messages.add(value);
                   }
                 });
 
@@ -626,7 +656,7 @@ final class BaseApiConsumer implements ApiConsumer {
         onReceiveProgress: onReceiveProgress,
       );
       log('right');
-      return Right(response.data as Map<String, dynamic>);
+      return Right(_asMap(response.data));
     } on DioException catch (e) {
       log('left $e');
       loggerError(e.toString());

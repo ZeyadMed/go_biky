@@ -229,7 +229,6 @@
         "bikeActive": "Active",
         "plateNumber": "Plate number",
         "privacyPolicy": "Privacy policy",
-        "terms": "Terms & conditions",
         "contactUs": "Contact us",
         "logout": "Log out",
         "footerCompany": "{} bike rental services",
@@ -251,15 +250,6 @@
     },
     "policy": {
         "lastUpdated": "Last updated: {}",
-        "readTime": {
-            "zero": "Less than a minute read",
-            "one": "{} min read",
-            "two": "{} min read",
-            "few": "{} min read",
-            "many": "{} min read",
-            "other": "{} min read"
-        },
-        "sectionTitle": "{}. {}",
         "empty": "This page hasn't been published yet. Check back soon."
     },
     "errors": {
@@ -269,6 +259,7 @@
         "timeout": "The connection timed out, please try again",
         "connectionFailed": "Couldn't connect to the server",
         "fileTooLarge": "The file is too large",
+        "fileNotFound": "Couldn't access the file, please choose it again",
         "openedOnAnotherDevice": "The app was opened on another device",
         "verificationFailed": "The verification code is incorrect",
         "invalidAuthResponse": "Couldn't sign you in, please try again"

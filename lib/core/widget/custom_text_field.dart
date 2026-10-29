@@ -94,7 +94,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
       firstDate: DateTime(1900),
       lastDate: DateTime(2200),
     );
-    if (pickedDate == null) return;
+    // الشاشة ممكن تكون اتقفلت والـ picker مفتوح
+    if (pickedDate == null || !mounted) return;
 
     // DD-MM-YYYY with leading zeros for day and month
     final day = pickedDate.day.toString().padLeft(2, '0');

@@ -11,7 +11,9 @@ class OilStatusCubit extends Cubit<BaseState<OilStatusModel>> {
 
   /// الداتا القديمة بتفضل في الـ state وقت التحديث، فالشاشة مابتفضاش
   Future<void> getOilStatus() async {
-    emit(state.copyWith(status: Status.loading));
+    // الـ cubit مشترك وبيتقفل عند الخروج، فممكن ينادي عليه حد شايله
+    if (isClosed) return;
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _dataSource.getOilStatus();
     if (isClosed) return;
     result.fold(

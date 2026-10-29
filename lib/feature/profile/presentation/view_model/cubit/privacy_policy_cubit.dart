@@ -10,7 +10,7 @@ class PrivacyPolicyCubit extends Cubit<BaseState<PolicyPageModel>> {
   final ProfileDataSource _dataSource;
 
   Future<void> getPrivacyPolicy() async {
-    emit(state.copyWith(status: Status.loading));
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _dataSource.getPrivacyPolicy();
     if (isClosed) return;
     result.fold(

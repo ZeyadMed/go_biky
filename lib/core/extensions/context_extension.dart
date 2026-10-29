@@ -110,10 +110,20 @@ extension ContextExtensions on BuildContext {
     iconColor: appColors.success,
   );
 
+  /// رسالة عادية مش خطأ ولا نجاح (زي "اضغط تاني للخروج"). `duration` لو
+  /// الرسالة مرتبطة بوقت محدد
+  void showInfoMessage(String message, {Duration? duration}) => _showSnackBar(
+    message,
+    icon: Icons.info_rounded,
+    iconColor: appColors.info,
+    duration: duration,
+  );
+
   void _showSnackBar(
     String message, {
     required IconData icon,
     required Color iconColor,
+    Duration? duration,
   }) {
     final messenger = ScaffoldMessenger.maybeOf(this);
     if (messenger == null) return;
@@ -124,6 +134,7 @@ extension ContextExtensions on BuildContext {
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
+          duration: duration ?? const Duration(milliseconds: 4000),
           backgroundColor: colors.bgSecondary,
           elevation: 4,
           shape: RoundedRectangleBorder(

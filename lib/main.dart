@@ -5,9 +5,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/cache_manager/cache_manager.dart';
 import 'package:go_biky/core/extensions/context_extension.dart';
+import 'package:go_biky/core/helpers/crash_reporter.dart';
 import 'package:go_biky/core/helpers/push_notifications_helper.dart';
 import 'package:go_biky/core/internet_connenction/internet_connection_state.dart';
 import 'package:go_biky/core/internet_connenction/internet_connenction_cubit.dart';
+import 'package:go_biky/core/router/app_keys.dart';
 import 'package:go_biky/core/router/app_router.dart';
 import 'package:go_biky/core/service_locator/service_locator.dart';
 import 'package:go_biky/core/style/assets.dart';
@@ -16,16 +18,13 @@ import 'package:go_biky/core/theme/theme_mode_controller.dart';
 import 'package:go_biky/core/widget/widgets.dart';
 import 'package:lottie/lottie.dart';
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
-    GlobalKey<ScaffoldMessengerState>();
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(
-  debugLabel: 'navigatorKey-${DateTime.now().millisecondsSinceEpoch}',
-);
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // أول حاجة، عشان أي خطأ بعدها يتسجل
+  await CrashReporter.init();
   await EasyLocalization.ensureInitialized();
   await CacheManager.init();
+  await CrashReporter.setUser(await CacheManager.getUserId());
   await ThemeModeController.loadSavedTheme();
   await DI.getItInit();
   await PushNotificationsHelper.init();
@@ -81,16 +80,26 @@ class MyApp extends StatelessWidget {
                 themeMode: themeMode,
                 routerConfig: AppRouter.router,
                 builder: (context, child) {
+                  // حجم الخط اللي المستخدم مختاره في الجهاز بيتطبق لحد 1.3،
+                  // عشان اللي محتاج خط أكبر يقرا من غير ما الديزاين يبوظ
                   return MediaQuery(
-                    data: MediaQuery.of(
-                      context,
-                    ).copyWith(textScaler: TextScaler.noScaling),
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: MediaQuery.textScalerOf(
+                        context,
+                      ).clamp(maxScaleFactor: 1.3),
+                    ),
+                    // شاشة النت فوق الـ Navigator مش مكانه، عشان قطع النت
+                    // مايمسحش الـ state بتاع الشاشات (زي الفيديو المتصوّر)
                     child: BlocBuilder<InternetCubit, InternetState>(
                       builder: (context, state) {
-                        if (state is InternetOffState) {
-                          return const _NoInternetView();
-                        }
-                        return child!;
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            child!,
+                            if (state is InternetOffState)
+                              const _NoInternetView(),
+                          ],
+                        );
                       },
                     ),
                   );

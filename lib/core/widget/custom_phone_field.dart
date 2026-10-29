@@ -73,7 +73,7 @@ class CustomPhoneField extends StatelessWidget {
               searchFieldInputDecoration: AppInputDecoration.of(
                 context,
                 hintText: 'common.search'.tr(),
-                suffixIcon: const Icon(Icons.search),
+                suffixIcon: Icon(Icons.search, size: 24.r),
               ),
             ),
             invalidNumberMessage: 'common.invalidPhoneNumber'.tr(),

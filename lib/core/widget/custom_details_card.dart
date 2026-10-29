@@ -71,24 +71,34 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = context.textTheme;
 
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.bodySmall?.copyWith(
-              color: context.appColors.textSecondary,
+    // القيمة بعرضها الطبيعي لحد ٦٠٪ من الصف، ولو أطول بتنزل سطر تاني بدل
+    // ما تعمل overflow، والعنوان بياخد الباقي
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodySmall?.copyWith(
+                color: context.appColors.textSecondary,
+              ),
             ),
           ),
-        ),
-        Gaps.h(12.w),
-        Text(
-          value,
-          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ],
+          Gaps.h(12.w),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.6),
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

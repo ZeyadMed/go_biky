@@ -36,6 +36,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _refresh() =>
       Future.wait([_cubit.refresh(), _unreadCubit.getUnreadCount()]);
 
+  /// تحميل الصفحة اللي بعدها أو إعادة محاولتها
+  Widget _loadMoreFooter(BaseState<NotificationModel> state) {
+    final colors = context.appColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.isLoadingMore) ...[
+          Gaps.v(16.h),
+          Center(child: CircularProgressIndicator(color: colors.primary)),
+        ],
+        if (state.isLoadingMoreFauilare) ...[
+          Gaps.v(8.h),
+          Center(
+            child: CustomButton.text(
+              title: 'common.retry'.tr(),
+              onPressed: () => _cubit.fetch(page: state.page),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -90,50 +114,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           return RefreshIndicator(
                             color: colors.primary,
                             onRefresh: _refresh,
-                            child: SingleChildScrollView(
+                            // slivers مش Column، عشان الإشعارات تتبني مع
+                            // السكرول بدل ما كل اللي اتحمل يتبني مرة واحدة
+                            child: CustomScrollView(
                               controller: _cubit.scrollController,
                               physics: const AlwaysScrollableScrollPhysics(),
-                              padding: EdgeInsets.fromLTRB(
-                                20.w,
-                                12.h,
-                                20.w,
-                                24.h,
-                              ),
-                              child: ResponsiveCenter(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (unreadCount > 0)
-                                      _UnreadBar(
-                                        count: unreadCount,
-                                        onMarkAllRead: _cubit.markAllAsRead,
-                                      ),
-                                    _Entries(state: state),
-                                    if (state.isLoadingMore) ...[
-                                      Gaps.v(16.h),
-                                      Center(
-                                        child: CircularProgressIndicator(
-                                          color: colors.primary,
-                                        ),
-                                      ),
-                                    ],
-                                    if (state.isLoadingMoreFauilare) ...[
-                                      Gaps.v(8.h),
-                                      Center(
-                                        child: TextButton(
-                                          onPressed: () =>
-                                              _cubit.fetch(page: state.page),
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: colors.primary,
+                              slivers: [
+                                SliverPadding(
+                                  padding: EdgeInsetsDirectional.fromSTEB(
+                                    20.w,
+                                    12.h,
+                                    20.w,
+                                    24.h,
+                                  ),
+                                  sliver: SliverResponsiveCenter(
+                                    sliver: SliverMainAxisGroup(
+                                      slivers: [
+                                        if (unreadCount > 0)
+                                          SliverToBoxAdapter(
+                                            child: _UnreadBar(
+                                              count: unreadCount,
+                                              onMarkAllRead:
+                                                  _cubit.markAllAsRead,
+                                            ),
                                           ),
-                                          child: Text('common.retry'.tr()),
+                                        _Entries(state: state),
+                                        SliverToBoxAdapter(
+                                          child: _loadMoreFooter(state),
                                         ),
-                                      ),
-                                    ],
-                                  ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           );
                         },
@@ -159,31 +172,31 @@ class _UnreadBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CustomBadge(
-          text: 'notifications.unreadCount'.plural(
-            count,
-            args: [context.formatNumber(count)],
+        // Expanded بدل Spacer، عشان الـ badge يقصّ النص على الشاشة الصغيرة
+        // بدل overflow
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: CustomBadge(
+              text: 'notifications.unreadCount'.plural(
+                count,
+                args: [context.formatNumber(count)],
+              ),
+            ),
           ),
         ),
-        const Spacer(),
-        TextButton(
+        CustomButton.text(
+          title: 'notifications.markAllRead'.tr(),
           onPressed: onMarkAllRead,
-          style: TextButton.styleFrom(
-            foregroundColor: context.appColors.primary,
-            textStyle: context.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-            visualDensity: VisualDensity.compact,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text('notifications.markAllRead'.tr()),
+          compact: true,
         ),
       ],
     );
   }
 }
 
-/// الإشعارات متجمعة باليوم، أو shimmer أول تحميل، أو رسالة لو الصندوق فاضي
+/// الإشعارات متجمعة باليوم، أو shimmer أول تحميل، أو رسالة لو الصندوق فاضي.
+/// sliver عشان الكروت تتبني مع السكرول
 class _Entries extends StatelessWidget {
   const _Entries({required this.state});
 
@@ -197,13 +210,14 @@ class _Entries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.items.isEmpty) {
-      if (state.isInitial || state.isLoading) {
-        return Padding(
-          padding: EdgeInsets.only(top: 16.h),
-          child: const ListShimmer(itemCount: 5),
-        );
-      }
-      return const _NoNotifications();
+      return SliverToBoxAdapter(
+        child: state.isInitial || state.isLoading
+            ? Padding(
+                padding: EdgeInsetsDirectional.only(top: 16.h),
+                child: const ListShimmer(itemCount: 5),
+              )
+            : const _NoNotifications(),
+      );
     }
 
     // الإشعارات راجعة من الأحدث للأقدم، فالأيام بتطلع بنفس الترتيب
@@ -217,22 +231,28 @@ class _Entries extends StatelessWidget {
           .add(item);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final MapEntry(key: group, value: items) in groups.entries) ...[
-          Gaps.v(16.h),
-          RowWidget(title: group.labelKey.tr()),
-          for (final item in items) ...[
-            Gaps.v(12.h),
-            NotificationCard(
+    // عنوان كل يوم وبعده إشعاراته في لستة واحدة، وكل صف بيتبني لما يظهر
+    final rows = <WidgetBuilder>[
+      for (final MapEntry(key: group, value: items) in groups.entries) ...[
+        (context) => Padding(
+          padding: EdgeInsetsDirectional.only(top: 16.h),
+          child: RowWidget(title: group.labelKey.tr()),
+        ),
+        for (final item in items)
+          (context) => Padding(
+            padding: EdgeInsetsDirectional.only(top: 12.h),
+            child: NotificationCard(
               notification: item,
               onTap: () => NotificationNavigation.open(context, item),
               onAcknowledge: () => _acknowledge(context, item.id),
             ),
-          ],
-        ],
+          ),
       ],
+    ];
+
+    return SliverList.builder(
+      itemCount: rows.length,
+      itemBuilder: (context, index) => rows[index](context),
     );
   }
 }

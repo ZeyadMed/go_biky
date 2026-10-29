@@ -49,7 +49,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
+                padding: EdgeInsetsDirectional.fromSTEB(20.w, 20.h, 20.w, 24.h),
                 child: ResponsiveCenter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

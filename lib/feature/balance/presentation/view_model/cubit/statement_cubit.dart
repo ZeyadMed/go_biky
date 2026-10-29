@@ -11,7 +11,7 @@ class StatementCubit extends Cubit<BaseState<StatementModel>> {
 
   /// الداتا القديمة بتفضل في الـ state وقت التحديث، فالشاشة مابتفضاش
   Future<void> getStatement() async {
-    emit(state.copyWith(status: Status.loading));
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await _dataSource.getStatement();
     if (isClosed) return;
     result.fold(

@@ -14,8 +14,11 @@ abstract class BaseCubit<T> extends Cubit<BaseState<T>> {
   }
 
   Future<void> fetchData() async {
-    emit(state.copyWith(status: Status.loading));
+    if (isClosed) return;
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await fetchFunction();
+    // الشاشة ممكن تكون اتقفلت والطلب شغال
+    if (isClosed) return;
     result.fold(
       (failure) => emit(
         state.copyWith(status: Status.failure, errorMessage: failure.message),
@@ -25,8 +28,10 @@ abstract class BaseCubit<T> extends Cubit<BaseState<T>> {
   }
 
   Future<void> fetchDataMap() async {
-    emit(state.copyWith(status: Status.loading));
+    if (isClosed) return;
+    emit(state.copyWith(status: Status.loading, clearError: true));
     final result = await fetchFunctionMap!();
+    if (isClosed) return;
     result.fold(
       (failure) => emit(
         state.copyWith(status: Status.failure, errorMessage: failure.message),
