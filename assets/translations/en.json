@@ -46,11 +46,16 @@
         "phone": "Mobile number",
         "phoneHint": "Enter your mobile number",
         "phoneRequired": "Please enter your mobile number",
+        "phoneInvalid": "Enter a valid 11-digit Egyptian mobile number starting with 010, 011, 012 or 015",
         "password": "Password",
         "passwordHint": "Enter your password",
         "passwordRequired": "Please enter your password",
         "login": "Sign in",
         "forgotPassword": "Forgot your password? Contact the company",
+        "forgotPasswordTitle": "Forgot your password?",
+        "forgotPasswordMessage": "Contact the company on one of the numbers below to reset your password.",
+        "forgotPasswordWhatsapp": "Hi, I forgot the password for my Go Biky account and need some help.",
+        "forgotPasswordWhatsappWithPhone": "Hi, I forgot the password for my Go Biky account registered with {} and need some help.",
         "accountInfo": "Your account is created by Go Biky.\nTo get your login details, contact your supervisor."
     },
     "bottomNav": {

@@ -15,8 +15,9 @@ class CustomConfirmDialog extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
-    required this.confirmText,
+    this.confirmText,
     this.cancelText,
+    this.content,
     this.iconColor,
     this.iconBackgroundColor,
     this.confirmColor,
@@ -26,10 +27,16 @@ class CustomConfirmDialog extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
-  final String confirmText;
+
+  /// لو مش متبعت مفيش زرار تأكيد، والـ dialog بيبقى للعرض بزرار قفل بس
+  /// (ابعت نصه في `cancelText`)
+  final String? confirmText;
 
   /// لو مش متبعت بيبقى "إلغاء والعودة"
   final String? cancelText;
+
+  /// محتوى تحت الرسالة وفوق الزراير (زي أرقام التواصل)
+  final Widget? content;
   final Color? iconColor;
   final Color? iconBackgroundColor;
   final Color? confirmColor;
@@ -40,8 +47,9 @@ class CustomConfirmDialog extends StatelessWidget {
     required IconData icon,
     required String title,
     required String message,
-    required String confirmText,
+    String? confirmText,
     String? cancelText,
+    Widget? content,
     Color? iconColor,
     Color? iconBackgroundColor,
     Color? confirmColor,
@@ -55,6 +63,7 @@ class CustomConfirmDialog extends StatelessWidget {
         message: message,
         confirmText: confirmText,
         cancelText: cancelText,
+        content: content,
         iconColor: iconColor,
         iconBackgroundColor: iconBackgroundColor,
         confirmColor: confirmColor,
@@ -114,15 +123,18 @@ class CustomConfirmDialog extends StatelessWidget {
                 ),
               ),
               Gaps.v(20.h),
-              CustomButton(
-                title: confirmText,
-                onPressed: () => Navigator.of(context).pop(true),
-                backgroundColor: confirmColor,
-                textColor: confirmTextColor,
-                height: 48.h,
-                fontSize: 15.sp,
-              ),
-              Gaps.v(10.h),
+              if (content case final content?) ...[content, Gaps.v(20.h)],
+              if (confirmText case final confirmText?) ...[
+                CustomButton(
+                  title: confirmText,
+                  onPressed: () => Navigator.of(context).pop(true),
+                  backgroundColor: confirmColor,
+                  textColor: confirmTextColor,
+                  height: 48.h,
+                  fontSize: 15.sp,
+                ),
+                Gaps.v(10.h),
+              ],
               CustomButton(
                 title: cancelText ?? 'common.cancelAndBack'.tr(),
                 onPressed: () => Navigator.of(context).pop(false),

@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_biky/core/bloc/base_bloc.dart';
@@ -56,6 +57,46 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _required(String? value, String messageKey) =>
       (value == null || value.trim().isEmpty) ? messageKey.tr() : null;
 
+  /// موبايل مصري: 11 رقم بيبدأ بـ 010 أو 011 أو 012 أو 015
+  static final _egyptianMobile = RegExp(r'^01[0125]\d{8}$');
+
+  /// الكيبورد العربي بيكتب ٠١٠، فبنحولها لأرقام إنجليزي الأول، وبعدين
+  /// بنشيل أي حاجة مش رقم ونقف عند 11
+  static final _phoneFormatters = <TextInputFormatter>[
+    TextInputFormatter.withFunction(
+      (_, value) => value.copyWith(
+        text: value.text.replaceAllMapped(
+          RegExp('[٠-٩]'),
+          (match) => '${match[0]!.codeUnitAt(0) - 0x0660}',
+        ),
+      ),
+    ),
+    FilteringTextInputFormatter.digitsOnly,
+    LengthLimitingTextInputFormatter(11),
+  ];
+
+  String? _validatePhone(String? value) {
+    final phone = value?.trim() ?? '';
+    if (phone.isEmpty) return 'auth.phoneRequired'.tr();
+    if (!_egyptianMobile.hasMatch(phone)) return 'auth.phoneInvalid'.tr();
+    return null;
+  }
+
+  void _showCompanyContacts() {
+    FocusScope.of(context).unfocus();
+    final phone = _phoneController.text.trim();
+    CustomConfirmDialog.show(
+      context,
+      icon: Icons.lock_reset_rounded,
+      title: 'auth.forgotPasswordTitle'.tr(),
+      message: 'auth.forgotPasswordMessage'.tr(),
+      cancelText: 'common.ok'.tr(),
+      content: ForgotPasswordContacts(
+        phone: _egyptianMobile.hasMatch(phone) ? phone : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -101,8 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         keyboardType: TextInputType.phone,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.telephoneNumber],
-                        validator: (value) =>
-                            _required(value, 'auth.phoneRequired'),
+                        inputFormatters: _phoneFormatters,
+                        validator: _validatePhone,
                         suffix: Icon(Icons.phone_outlined, size: 22.r),
                       ),
                       Gaps.v(16.h),
@@ -132,8 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Center(
                         child: CustomButton.text(
                           title: 'auth.forgotPassword'.tr(),
-                          // TODO: فتح وسيلة التواصل مع الشركة لما تتحدد
-                          onPressed: () {},
+                          onPressed: _showCompanyContacts,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
